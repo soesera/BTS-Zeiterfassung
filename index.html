@@ -397,9 +397,9 @@ function startApp(){
         `<a href="${base}?ma=${i}" style="color:var(--accent);margin-right:16px" onclick="navigator.clipboard&&navigator.clipboard.writeText('${base}?ma=${i}')">🔗 ${n}</a>`
       ).join('') +
       `<br><br><a href="${base}?admin" style="color:var(--accent);margin-right:16px">⚙️ Admin-Link</a>` +
-      '<span style="font-size:11px;color:var(--text3)"> – auf Link klicken zum Kopieren</span><br><span style="font-size:11px;color:var(--text3)">Version: '+APP_BUILD+'</span>';
+      '<span style="font-size:11px;color:var(--text3)"> – auf Link klicken zum Kopieren</span><br><span style="font-size:11px;color:var(--text3)">Version: '+APP_BUILD+'</span>&nbsp;&nbsp;<button onclick="resetConnection()" style="font-size:11px;padding:2px 8px;border-radius:4px;border:1px solid var(--border);background:transparent;cursor:pointer;color:var(--text3)">Neu verbinden</button>';
   } else {
-    document.getElementById('bin-info').textContent = 'Angemeldet als: '+MITARBEITER[currentMA]+' · Version: '+APP_BUILD;
+    document.getElementById('bin-info').innerHTML = 'Angemeldet als: '+MITARBEITER[currentMA]+' · Version: '+APP_BUILD+'&nbsp;&nbsp;<button onclick="resetConnection()" style="font-size:11px;padding:2px 8px;border-radius:4px;border:1px solid var(--border);background:transparent;cursor:pointer;color:var(--text3)">Neu verbinden</button>';
   }
   // Immer mit aktuellem Monat starten
   currentMonth = new Date().getMonth();
@@ -860,6 +860,14 @@ function exportCSV(){
   const a=document.createElement('a'); a.href=url;
   a.download=`Stundenliste_${MITARBEITER[currentMA]}_${MON[currentMonth]}_${currentYear}.csv`;
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
+}
+
+function resetConnection(){
+  if(confirm('Verbindung zurücksetzen? Key und Bin-ID werden gelöscht.')){
+    localStorage.removeItem('zt_k');
+    localStorage.removeItem('zt_b');
+    location.reload();
+  }
 }
 
 // ---- INIT ----
