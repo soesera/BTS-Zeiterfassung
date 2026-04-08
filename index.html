@@ -165,6 +165,7 @@ tr.row-today{outline:2px solid var(--accent);outline-offset:-2px;position:relati
       <div class="export-group">
         <button class="export-btn pdf-btn" onclick="exportPDF()">⬇ PDF</button>
         <button class="export-btn" onclick="exportCSV()">⬇ CSV</button>
+        <button class="export-btn" onclick="exportBackup()" title="Alle Daten als Backup speichern">⬇ Backup</button>
       </div>
     </div>
     <div class="summary-grid">
@@ -213,7 +214,7 @@ const MON = ['Januar','Februar','März','April','Mai','Juni','Juli','August','Se
 const JB = 'https://api.jsonbin.io/v3';
 const DEF_START = '06:30';
 const APP_VERSION = '4';
-const APP_BUILD  = '2026-04-08 v1.4';
+const APP_BUILD  = '2026-04-08 v1.6';
 
 let apiKey='', binId='', allData={};
 let currentMA=0, currentMonth=new Date().getMonth(), currentYear=new Date().getFullYear();
@@ -392,7 +393,7 @@ function startApp(){
       `<br><br><a href="${base}?admin" style="color:var(--accent);margin-right:16px">⚙️ Admin-Link</a>` +
       '<span style="font-size:11px;color:var(--text3)"> – auf Link klicken zum Kopieren</span><br><span style="font-size:11px;color:var(--text3)">Version: '+APP_BUILD+'</span>&nbsp;&nbsp;<button onclick="resetConnection()" style="font-size:11px;padding:2px 8px;border-radius:4px;border:1px solid var(--border);background:transparent;cursor:pointer;color:var(--text3)">Neu verbinden</button>';
   } else {
-    document.getElementById('bin-info').innerHTML = 'Angemeldet als: '+MITARBEITER[currentMA]+' · Version: '+APP_BUILD+'&nbsp;&nbsp;<button onclick="resetConnection()" style="font-size:11px;padding:2px 8px;border-radius:4px;border:1px solid var(--border);background:transparent;cursor:pointer;color:var(--text3)">Neu verbinden</button>';
+    document.getElementById('bin-info').innerHTML = 'Angemeldet als: '+MITARBEITER[currentMA]+' · Bin-ID: '+binId+' · Version: '+APP_BUILD+'&nbsp;&nbsp;<button onclick="resetConnection()" style="font-size:11px;padding:2px 8px;border-radius:4px;border:1px solid var(--border);background:transparent;cursor:pointer;color:var(--text3)">Neu verbinden</button>';
   }
   // Immer mit aktuellem Monat starten
   currentMonth = new Date().getMonth();
@@ -861,6 +862,58 @@ function resetConnection(){
     localStorage.removeItem('zt_b');
     location.reload();
   }
+}
+
+// ---- BACKUP ----
+function exportBackup(){
+  // Alle Daten als JSON speichern – pro Mitarbeiter aufgeteilt
+  const ft = getAllFeiertage(currentYear);
+  const backup = {
+    exportiert: new Date().toLocaleString('de-AT'),
+    version: APP_BUILD,
+    mitarbeiter: {}
+  };
+
+  MITARBEITER.forEach((name, mi) => {
+    backup.mitarbeiter[name] = {};
+    // Alle Jahre/Monate die Daten haben
+    Object.keys(allData).forEach(k => {
+      if(k.startsWith(mi+'_')){
+        const parts = k.split('_'); // mi_year_month
+        const yr = parts[1], mo = parts[2];
+        const label = MON[parseInt(mo)] + ' ' + yr;
+        const rows = allData[k];
+        if(!backup.mitarbeiter[name][label]) backup.mitarbeiter[name][label] = [];
+        Object.keys(rows).forEach(d => {
+          const row = rows[d];
+          if(row.art){
+            const date = new Date(parseInt(yr), parseInt(mo), parseInt(d));
+            const solH = getSoll(date, getAllFeiertage(parseInt(yr)));
+            const pv = parseInt(row.pause)||0;
+            const kk = exportKorrektur(row.start||DEF_START, row.ende, pv);
+            const sm = calcSumme(row.start||DEF_START, kk.ende, kk.pause);
+            backup.mitarbeiter[name][label].push({
+              datum: WT[date.getDay()]+' '+d+'. '+MON[parseInt(mo)]+' '+yr,
+              art: row.art,
+              start: row.start||DEF_START,
+              ende: kk.ende,
+              pause: kk.pause,
+              summe: sm!==null?sm.toFixed(2):'0.00',
+              soll: solH.toFixed(2),
+              notiz: row.notiz||''
+            });
+          }
+        });
+      }
+    });
+  });
+
+  const blob = new Blob([JSON.stringify(backup, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href=url;
+  const heute = new Date().toISOString().substring(0,10);
+  a.download = 'BTS_Zeiterfassung_Backup_'+heute+'.json';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
 }
 
 // ---- INIT ----
