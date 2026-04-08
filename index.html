@@ -153,6 +153,7 @@ tr.row-today{outline:2px solid var(--accent);outline-offset:-2px;position:relati
       <div class="topbar-right">
       <div class="sync-dot" id="sync-dot"></div>
       <span class="sync-label" id="sync-label">–</span>
+      <button onclick="manualRefresh()" style="height:28px;padding:0 10px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text2);font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer;margin-left:4px">↻ Aktualisieren</button>
     </div>
   </div>
   <div class="main">
@@ -360,6 +361,11 @@ function setSyncStatus(s,l){
   document.getElementById('sync-dot').className='sync-dot '+s;
   document.getElementById('sync-label').textContent=l;
 }
+async function manualRefresh(){
+  setSyncStatus('loading','lädt…');
+  await fetchData();
+  render();
+}
 
 // ---- APP START ----
 function startApp(){
@@ -400,7 +406,7 @@ function startApp(){
 
   setSyncStatus('loading','lädt…');
   fetchData().then(()=>render());
-  setInterval(async()=>{ await fetchData(); updateSummary(); }, 60000);
+  setInterval(async()=>{ await fetchData(); updateSummary(); }, 30000);
 }
 function buildTabs(){
   const bar=document.getElementById('tab-bar'); bar.innerHTML='';
@@ -524,13 +530,13 @@ function render(){
 
     // --- START ---
     const startIn=document.createElement('input');
-    startIn.type='time'; startIn.className='f f-time';
+    startIn.type='time'; startIn.className='f f-time'; startIn.step='900';
     // Zeige gespeicherten Wert oder Default
     startIn.value=startSaved||DEF_START;
 
     // --- ENDE ---
     const endeIn=document.createElement('input');
-    endeIn.type='time'; endeIn.className='f f-time';
+    endeIn.type='time'; endeIn.className='f f-time'; endeIn.step='900';
     endeIn.value=endeSaved;
 
     // --- PAUSE ---
