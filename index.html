@@ -132,7 +132,7 @@ tr.row-today{outline:2px solid var(--accent);outline-offset:-2px;position:relati
       <label>Master Key</label>
       <input type="text" id="api-key-input" placeholder="$2a$10$..." autocomplete="off" autocorrect="off" spellcheck="false">
     </div>
-    <div class="fg" id="bin-id-group">
+    <div class="fg" id="bin-id-group" style="display:none">
       <label>Bin-ID (für weitere iPads)</label>
       <input type="text" id="bin-id-input" placeholder="z.B. 64a1b2c3d4e5f6..." autocomplete="off" spellcheck="false">
     </div>
@@ -213,7 +213,7 @@ const MON = ['Januar','Februar','März','April','Mai','Juni','Juli','August','Se
 const JB = 'https://api.jsonbin.io/v3';
 const DEF_START = '06:30';
 const APP_VERSION = '4';
-const APP_BUILD  = '2026-04-08 v1.0';
+const APP_BUILD  = '2026-04-08 v1.4';
 
 let apiKey='', binId='', allData={};
 let currentMA=0, currentMonth=new Date().getMonth(), currentYear=new Date().getFullYear();
@@ -326,17 +326,10 @@ async function setupConnect(){
   err.style.display='none';
   if(!key){ err.textContent='Bitte Master Key eingeben.'; err.style.display='block'; return; }
   apiKey=key;
-  if(bid){ binId=bid; localStorage.setItem('zt_k',apiKey); localStorage.setItem('zt_b',binId); startApp(); return; }
-  try{
-    const r=await fetch(`${JB}/b`,{method:'POST',
-      headers:{'Content-Type':'application/json','X-Master-Key':apiKey,'X-Bin-Name':'Zeiterfassung'},
-      body:JSON.stringify({__init:true})});
-    if(!r.ok) throw new Error(`HTTP ${r.status}`);
-    const data=await r.json();
-    binId=data.metadata.id;
-    localStorage.setItem('zt_k',apiKey); localStorage.setItem('zt_b',binId);
-    allData={}; startApp();
-  }catch(e){ err.textContent='Verbindung fehlgeschlagen: '+e.message; err.style.display='block'; }
+  binId=DEFAULT_BIN_ID;
+  localStorage.setItem('zt_k', apiKey);
+  localStorage.setItem('zt_b', DEFAULT_BIN_ID);
+  startApp();
 }
 async function fetchData(){
   try{
@@ -877,6 +870,8 @@ function resetConnection(){
 let isAdminMode = false;
 let isMaMode = false;
 
+const DEFAULT_BIN_ID = '69d643e4aaba882197d78306';
+
 (function(){
   const urlParams = new URLSearchParams(window.location.search);
   const maParam = urlParams.get('ma');
@@ -889,14 +884,18 @@ let isMaMode = false;
       isMaMode = true;
     }
   } else {
-    isAdminMode = true; // admin-Parameter oder kein Parameter
+    isAdminMode = true;
   }
 
-  const k=localStorage.getItem('zt_k'), b=localStorage.getItem('zt_b');
-  if(k&&b){ apiKey=k; binId=b; startApp(); }
+  // Bin-ID ist immer fest – DEFAULT_BIN_ID hat Vorrang
+  const k=localStorage.getItem('zt_k');
+  binId = DEFAULT_BIN_ID;
+  localStorage.setItem('zt_b', DEFAULT_BIN_ID);
+  if(k){ apiKey=k; startApp(); }
   else{
     document.getElementById('setup-screen').style.display='flex';
-    if(k){ document.getElementById('api-key-input').value=k; document.getElementById('bin-id-group').style.display='block'; }
+    document.getElementById('bin-id-input').value = DEFAULT_BIN_ID;
+    if(k){ document.getElementById('api-key-input').value=k; }
   }
 })();
 </script>
