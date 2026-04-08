@@ -212,7 +212,8 @@ const WT = ['So.','Mo.','Di.','Mi.','Do.','Fr.','Sa.'];
 const MON = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
 const JB = 'https://api.jsonbin.io/v3';
 const DEF_START = '06:30';
-const APP_VERSION = '4'; // Erhöhen = alle Daten zurücksetzen
+const APP_VERSION = '4';
+const APP_BUILD  = '2026-04-08 v1.0';
 
 let apiKey='', binId='', allData={};
 let currentMA=0, currentMonth=new Date().getMonth(), currentYear=new Date().getFullYear();
@@ -396,9 +397,9 @@ function startApp(){
         `<a href="${base}?ma=${i}" style="color:var(--accent);margin-right:16px" onclick="navigator.clipboard&&navigator.clipboard.writeText('${base}?ma=${i}')">🔗 ${n}</a>`
       ).join('') +
       `<br><br><a href="${base}?admin" style="color:var(--accent);margin-right:16px">⚙️ Admin-Link</a>` +
-      '<span style="font-size:11px;color:var(--text3)"> – auf Link klicken zum Kopieren</span>';
+      '<span style="font-size:11px;color:var(--text3)"> – auf Link klicken zum Kopieren</span><br><span style="font-size:11px;color:var(--text3)">Version: '+APP_BUILD+'</span>';
   } else {
-    document.getElementById('bin-info').textContent = 'Angemeldet als: '+MITARBEITER[currentMA];
+    document.getElementById('bin-info').textContent = 'Angemeldet als: '+MITARBEITER[currentMA]+' · Version: '+APP_BUILD;
   }
   // Immer mit aktuellem Monat starten
   currentMonth = new Date().getMonth();
