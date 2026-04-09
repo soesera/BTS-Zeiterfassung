@@ -110,6 +110,20 @@ tr.row-today{outline:2px solid var(--accent);outline-offset:-2px;position:relati
 .leg-K{background:var(--danger-bg);color:var(--danger-text)}
 .leg-S,.leg-AB,.leg-P{background:var(--surface2);color:var(--text2)}
 
+/* Quick-Action Bar */
+.quick-bar{display:none;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:12px 16px;margin-bottom:1.25rem;align-items:center;gap:10px;flex-wrap:wrap}
+.quick-bar.visible{display:flex}
+.quick-bar .q-label{font-size:13px;color:var(--text2);font-weight:500;margin-right:4px}
+.q-btn{height:40px;padding:0 18px;border-radius:var(--rs);border:1px solid var(--border);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;cursor:pointer;transition:all .15s}
+.q-btn.start{background:var(--accent);color:#fff;border-color:var(--accent)}
+.q-btn.start:active{opacity:.85}
+.q-btn.stop{background:var(--danger-bg);color:var(--danger);border-color:var(--danger)}
+.q-btn.stop:active{opacity:.85}
+.q-btn.add{background:var(--surface2);color:var(--text2);border-color:var(--border)}
+.q-btn.add:active{background:var(--border)}
+.q-time{font-family:'DM Mono',monospace;font-size:13px;color:var(--text3);margin-left:auto}
+.q-row-active td{background:var(--accent-bg)!important;outline:2px solid var(--accent);outline-offset:-2px}
+
 @media(max-width:600px){
   .summary-grid{grid-template-columns:1fr 1fr}
   .summary-grid .summary-card:last-child{grid-column:span 2}
@@ -158,6 +172,14 @@ tr.row-today{outline:2px solid var(--accent);outline-offset:-2px;position:relati
   </div>
   <div class="main">
     <div class="tab-bar" id="tab-bar"></div>
+    <div class="quick-bar" id="quick-bar">
+      <span class="q-label">Heute:</span>
+      <button class="q-btn start" onclick="quickStart()">▶ Start</button>
+      <button class="q-btn stop"  onclick="quickStop()">■ Stop</button>
+      <span style="width:1px;height:28px;background:var(--border);margin:0 4px"></span>
+      <button class="q-btn add"   onclick="quickAddRow()">+ Zeile einfügen</button>
+      <span class="q-time" id="q-clock"></span>
+    </div>
     <div class="month-nav">
       <button class="nav-btn" onclick="changeMonth(-1)">‹</button>
       <div class="month-label" id="month-label"></div>
@@ -214,7 +236,7 @@ const MON = ['Januar','Februar','März','April','Mai','Juni','Juli','August','Se
 const JB = 'https://api.jsonbin.io/v3';
 const DEF_START = '06:30';
 const APP_VERSION = '4';
-const APP_BUILD  = '2026-04-08 v1.6';
+const APP_BUILD  = '2026-04-09 v1.7';
 
 let apiKey='', binId='', allData={};
 let currentMA=0, currentMonth=new Date().getMonth(), currentYear=new Date().getFullYear();
@@ -381,6 +403,11 @@ function startApp(){
   // Export-Buttons nur im Admin-Modus
   const expGroup = document.querySelector('.export-group');
   if(expGroup) expGroup.style.display = isMaMode ? 'none' : 'flex';
+  // Quick-Bar nur im MA-Modus
+  const qBar = document.getElementById('quick-bar');
+  if(qBar) qBar.className = isMaMode ? 'quick-bar visible' : 'quick-bar';
+  // Uhr aktualisieren
+  if(isMaMode) setInterval(updateClock, 1000);
 
   if(isAdminMode){
     const base = window.location.origin + window.location.pathname;
@@ -683,8 +710,77 @@ function render(){
 
     // Zeile zusammenbauen
     const td=(el)=>{ const t=document.createElement('td'); t.appendChild(el); return t; };
+    tr.setAttribute('data-day', d);
+    tr.onclick=()=>setActiveRow(d);
     tr.append(dtd, td(artSel), td(startIn), td(endeIn), td(pauseWrap), summeTd, sollTd, td(notizIn), td(saveBtn));
     tb.appendChild(tr);
+
+    // Extra-Zeilen für diesen Tag anzeigen
+    const k2=rkey(currentMA,currentMonth,currentYear);
+    if(allData[k2]){
+      Object.keys(allData[k2]).filter(ek=>ek.startsWith('extra_')&&ek.endsWith('_'+d)).sort().forEach(ek=>{
+        const erow=allData[k2][ek]||{};
+        const epv=parseInt(erow.pause)||0;
+        const esm=erow.art?calcSumme(erow.start||DEF_START,erow.ende,epv):null;
+        if(erow.art&&esm!==null) ist+=esm;
+        const etr=document.createElement('tr');
+        etr.setAttribute('data-day',ek);
+        etr.onclick=()=>setActiveRow(ek);
+        etr.style.background='var(--surface2)';
+        const edtd=document.createElement('td');edtd.className='date-cell';
+        edtd.innerHTML='<div class="date-dow" style="padding-left:10px;color:var(--text3)">↳ Extra</div>';
+        const eartSel=document.createElement('select');eartSel.className='f';
+        ARTEN.forEach(a=>{const o=document.createElement('option');o.value=a;o.textContent=a||'–';if((erow.art||'')===a)o.selected=true;eartSel.appendChild(o);});
+        const estartIn=makeTimeSelect(erow.start||DEF_START);
+        const eendeIn=makeTimeSelect(erow.ende||'');
+        const epw=document.createElement('div');epw.className='pause-wrap';
+        const eps=document.createElement('select');eps.className='f';
+        [0,15,30,45].forEach(p=>{const o=document.createElement('option');o.value=p;o.textContent=p+' min';if(!erow.pauseFrei&&epv===p)o.selected=true;eps.appendChild(o);});
+        const epf=document.createElement('option');epf.value='frei';epf.textContent='Frei…';if(erow.pauseFrei)epf.selected=true;eps.appendChild(epf);
+        const epn=document.createElement('input');epn.type='number';epn.min=0;epn.max=480;epn.placeholder='min';epn.className='f f-time pause-frei';
+        if(erow.pauseFrei){epn.style.display='block';epn.value=epv;}
+        eps.onchange=()=>{if(eps.value==='frei'){epn.style.display='block';epn.focus();}else{epn.style.display='none';}eLive();};
+        epn.oninput=eLive;epw.appendChild(eps);epw.appendChild(epn);
+        const eni=document.createElement('input');eni.type='text';eni.className='f f-note';eni.placeholder='Notiz…';eni.value=erow.notiz||'';
+        const est=document.createElement('td');est.className='summe-cell'+(erow.art&&esm!==null?' filled':'');
+        est.textContent=(erow.art&&esm!==null)?esm.toFixed(2):'—';
+        const esolt=document.createElement('td');esolt.className='soll-cell';esolt.textContent='—';
+        const esb=document.createElement('button');esb.className='save-btn';esb.textContent='Speichern';
+        const edb=document.createElement('button');
+        edb.style.cssText='height:34px;padding:0 8px;border-radius:var(--rs);border:1px solid var(--danger);background:var(--danger-bg);color:var(--danger);font-size:12px;cursor:pointer;flex-shrink:0';
+        edb.textContent='✕';edb.title='Zeile löschen';
+        edb.onclick=(ev)=>{ev.stopPropagation();if(confirm('Extra-Zeile löschen?')){const k3=rkey(currentMA,currentMonth,currentYear);if(allData[k3])delete allData[k3][ek];schedulePush();render();}};
+        function eLive(){
+          const s=estartIn.value||DEF_START,e2=eendeIn.value;
+          const p=eps.value==='frei'?(parseInt(epn.value)||0):(parseInt(eps.value)||0);
+          const lv=calcSumme(s,e2,p);
+          est.textContent=(eartSel.value&&lv!==null)?lv.toFixed(2):'—';
+          est.className='summe-cell'+((eartSel.value&&lv!==null)?' filled':'');
+          esb.className='save-btn dirty';esb.textContent='Speichern';
+        }
+        eartSel.onchange=eLive;estartIn.onchange=eLive;eendeIn.onchange=eLive;
+        eni.oninput=()=>{esb.className='save-btn dirty';esb.textContent='Speichern';};
+        esb.onclick=()=>{
+          if(!eartSel.value){alert('Bitte Art auswählen');eartSel.focus();return;}
+          if(!eendeIn.value){alert('Bitte Endzeit eintragen');eendeIn.focus();return;}
+          const fa=eps.value==='frei';
+          const ps=fa?(parseInt(epn.value)||0):(parseInt(eps.value)||0);
+          const obj={art:eartSel.value,start:estartIn.value||DEF_START,ende:eendeIn.value,pause:ps,pauseFrei:fa,notiz:eni.value};
+          const k3=rkey(currentMA,currentMonth,currentYear);
+          if(!allData[k3])allData[k3]={};allData[k3][ek]=obj;schedulePush();
+          esb.className='save-btn saved';esb.textContent='✓ Gespeichert';
+          const sm3=calcSumme(obj.start,obj.ende,ps);
+          est.textContent=(obj.art&&sm3!==null)?sm3.toFixed(2):'—';
+          est.className='summe-cell'+((obj.art&&sm3!==null)?' filled':'');
+          setTimeout(updateSummary,200);
+        };
+        const etd=(el)=>{const t=document.createElement('td');t.appendChild(el);return t;};
+        const estd=document.createElement('td');estd.style.cssText='display:flex;gap:3px;padding:5px 5px';
+        estd.appendChild(esb);estd.appendChild(edb);
+        etr.append(edtd,etd(eartSel),etd(estartIn),etd(eendeIn),etd(epw),est,esolt,etd(eni),estd);
+        tb.appendChild(etr);
+      });
+    }
   }
 
   // Gesamtzahlen
@@ -914,6 +1010,111 @@ function exportBackup(){
   const heute = new Date().toISOString().substring(0,10);
   a.download = 'BTS_Zeiterfassung_Backup_'+heute+'.json';
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
+}
+
+// ---- QUICK ACTIONS ----
+let activeRowDay = null; // welche Zeile ist aktiv (für + Zeile einfügen)
+
+function roundTo15(date){
+  const m = date.getMinutes();
+  const rounded = Math.floor(m/15)*15;
+  return String(date.getHours()).padStart(2,'0')+':'+String(rounded).padStart(2,'0');
+}
+
+function updateClock(){
+  const el = document.getElementById('q-clock');
+  if(!el) return;
+  const now = new Date();
+  el.textContent = String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0')+':'+String(now.getSeconds()).padStart(2,'0');
+}
+
+function getTodayDay(){
+  const now = new Date();
+  if(now.getFullYear()===currentYear && now.getMonth()===currentMonth){
+    return now.getDate();
+  }
+  return null;
+}
+
+function quickStart(){
+  const d = getTodayDay();
+  if(!d){ alert('Bitte zum aktuellen Monat navigieren.'); return; }
+  const now = new Date();
+  const t = roundTo15(now);
+  const row = getRow(currentMA, currentMonth, currentYear, d);
+  if(row.start && row.start !== DEF_START){
+    if(!confirm('Start ist bereits eingetragen ('+row.start+'). Überschreiben?')) return;
+  }
+  // Art auf A setzen wenn noch leer
+  const newRow = {...row, start: t, art: row.art||'A'};
+  // Ende automatisch berechnen wenn Sollzeit bekannt
+  if(!newRow.ende){
+    const ft = getAllFeiertage(currentYear);
+    const date = new Date(currentYear, currentMonth, d);
+    const solH = getSoll(date, ft);
+    if(solH > 0){
+      const startMins = parseInt(t.split(':')[0])*60 + parseInt(t.split(':')[1]);
+      const endeMins = startMins + Math.round(solH*60);
+      newRow.ende = String(Math.floor(endeMins/60)).padStart(2,'0')+':'+String(endeMins%60).padStart(2,'0');
+    }
+  }
+  saveRowData(currentMA, currentMonth, currentYear, d, newRow);
+  activeRowDay = d;
+  render();
+  // Zur heutigen Zeile scrollen
+  scrollToToday();
+}
+
+function quickStop(){
+  const d = getTodayDay();
+  if(!d){ alert('Bitte zum aktuellen Monat navigieren.'); return; }
+  const now = new Date();
+  const t = roundTo15(now);
+  const row = getRow(currentMA, currentMonth, currentYear, d);
+  const newRow = {...row, ende: t, art: row.art||'A', start: row.start||DEF_START};
+  saveRowData(currentMA, currentMonth, currentYear, d, newRow);
+  activeRowDay = d;
+  render();
+  scrollToToday();
+}
+
+function quickAddRow(){
+  if(!activeRowDay){
+    alert('Bitte zuerst eine Zeile aktivieren (antippen) oder Start/Stop drücken.');
+    return;
+  }
+  // Extra-Zeile nach activeRowDay einfügen
+  const k = rkey(currentMA, currentMonth, currentYear);
+  if(!allData[k]) allData[k] = {};
+  // Finde nächste freie extra_X_day Nummer
+  let idx = 1;
+  while(allData[k]['extra_'+idx+'_'+activeRowDay]) idx++;
+  const extraKey = 'extra_'+idx+'_'+activeRowDay;
+  allData[k][extraKey] = {art:'', start:DEF_START, ende:'', pause:0, notiz:''};
+  schedulePush();
+  render();
+  // Zur eingefügten Zeile scrollen
+  setTimeout(()=>{
+    const newRow = document.querySelector(`tr[data-day="${extraKey}"]`);
+    if(newRow){ newRow.scrollIntoView({behavior:'smooth', block:'center'}); setActiveRow(extraKey); }
+  }, 200);
+}
+
+function scrollToToday(){
+  const d = getTodayDay();
+  if(!d) return;
+  setTimeout(()=>{
+    const row = document.querySelector(`tr[data-day="${d}"]`);
+    if(row) row.scrollIntoView({behavior:'smooth', block:'center'});
+  }, 200);
+}
+
+function setActiveRow(d){
+  // Vorherige aktive Zeile demarkieren
+  document.querySelectorAll('tr.q-row-active').forEach(r=>r.classList.remove('q-row-active'));
+  activeRowDay = d;
+  const row = document.querySelector(`tr[data-day="${d}"]`);
+  if(row) row.classList.add('q-row-active');
 }
 
 // ---- INIT ----
