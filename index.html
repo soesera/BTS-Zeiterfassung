@@ -236,7 +236,7 @@ const MON = ['Januar','Februar','März','April','Mai','Juni','Juli','August','Se
 const JB = 'https://api.jsonbin.io/v3';
 const DEF_START = '06:30';
 const APP_VERSION = '4';
-const APP_BUILD  = '2026-04-09 v1.7';
+const APP_BUILD  = '2026-04-09 v1.8';
 
 let apiKey='', binId='', allData={};
 let currentMA=0, currentMonth=new Date().getMonth(), currentYear=new Date().getFullYear();
@@ -325,16 +325,50 @@ function exportKorrektur(start, ende, pIn){
 
 // ---- DATA ----
 function rkey(mi,mo,yr){ return `${mi}_${yr}_${mo}`; }
-function getRow(mi,mo,yr,d){
+
+// Gibt Array von Einträgen für einen Tag zurück (min. 1 Element)
+function getRows(mi,mo,yr,d){
   const k=rkey(mi,mo,yr);
-  return (allData[k]&&allData[k][d]) ? {...allData[k][d]} : {};
+  if(!allData[k]||!allData[k][d]) return [{}];
+  const v=allData[k][d];
+  // Rückwärtskompatibilität: alter Eintrag war ein Objekt, kein Array
+  if(!Array.isArray(v)) return [v];
+  return v.length>0 ? v : [{}];
 }
-function saveRowData(mi,mo,yr,d,obj){
+
+// Speichert Array von Einträgen für einen Tag
+function saveRows(mi,mo,yr,d,arr){
   const k=rkey(mi,mo,yr);
   if(!allData[k]) allData[k]={};
-  allData[k][d]=obj;
+  allData[k][d]=arr;
   schedulePush();
 }
+
+// Einzelnen Eintrag speichern (Index im Array)
+function saveRowAt(mi,mo,yr,d,idx,obj){
+  const rows=getRows(mi,mo,yr,d);
+  rows[idx]=obj;
+  saveRows(mi,mo,yr,d,rows);
+}
+
+// Zeile nach Index einfügen
+function insertRowAfter(mi,mo,yr,d,afterIdx,obj){
+  const rows=getRows(mi,mo,yr,d);
+  rows.splice(afterIdx+1,0,obj);
+  saveRows(mi,mo,yr,d,rows);
+}
+
+// Zeile löschen
+function deleteRowAt(mi,mo,yr,d,idx){
+  const rows=getRows(mi,mo,yr,d);
+  if(rows.length<=1){ rows[0]={}; }
+  else { rows.splice(idx,1); }
+  saveRows(mi,mo,yr,d,rows);
+}
+
+// Rückwärtskompatibel: getRow gibt ersten Eintrag zurück
+function getRow(mi,mo,yr,d){ return getRows(mi,mo,yr,d)[0]; }
+function saveRowData(mi,mo,yr,d,obj){ saveRowAt(mi,mo,yr,d,0,obj); }
 function schedulePush(){
   setSyncStatus('loading','wird gespeichert…');
   clearTimeout(pushTimer);
@@ -456,19 +490,26 @@ function changeMonth(d){
 }
 
 // ---- SUMMARY UPDATE (ohne Tabelle neu bauen) ----
+function calcDayTotal(mi,mo,yr,d){
+  const rows=getRows(mi,mo,yr,d);
+  let total=0;
+  rows.forEach(row=>{
+    if(row.art){
+      const sm=calcSumme(row.start||DEF_START, row.ende, parseInt(row.pause)||0);
+      if(sm!==null) total+=sm;
+    }
+  });
+  return total;
+}
+
 function updateSummary(){
   const ft=getAllFeiertage(currentYear), n=getDays(currentYear,currentMonth);
   let ist=0, sol=0;
   for(let d=1;d<=n;d++){
     const date=new Date(currentYear,currentMonth,d);
-    const row=getRow(currentMA,currentMonth,currentYear,d);
     const solH=getSoll(date,ft);
     if(solH>0) sol+=solH;
-    if(row.art){
-      const s=row.start||DEF_START, p=parseInt(row.pause)||0;
-      const sm=calcSumme(s, row.ende, p);
-      if(sm!==null) ist+=sm;
-    }
+    ist+=calcDayTotal(currentMA,currentMonth,currentYear,d);
   }
   const diff=ist-sol;
   document.getElementById('s-ist').textContent=ist.toFixed(2)+' h';
@@ -518,14 +559,17 @@ function render(){
     const isFT=!!ftName&&!isWE;
     const isGesetzlich=!!getGesetzlicheFeiertage(currentYear)[ftKey];
     const isToday=date.toDateString()===today.toDateString();
-    const row=getRow(currentMA,currentMonth,currentYear,d);
+    const rows_d=getRows(currentMA,currentMonth,currentYear,d);
     const solH=getSoll(date,ft);
     if(solH>0) sol+=solH;
+    ist+=calcDayTotal(currentMA,currentMonth,currentYear,d);
+
+    rows_d.forEach((row, rowIdx)=>{
+    const isFirstRow=(rowIdx===0);
     const pv=parseInt(row.pause)||0;
     const startSaved=row.start||'';
     const endeSaved=row.ende||'';
     const sm=row.art ? calcSumme(startSaved||DEF_START, endeSaved, pv) : null;
-    if(row.art&&sm!==null) ist+=sm;
 
     const tr=document.createElement('tr');
     let cls=isWE?'row-weekend':isFT?'row-feiertag':'';
@@ -534,36 +578,37 @@ function render(){
 
     // --- DATUM ZELLE mit editierbarem Feiertag ---
     const dtd=document.createElement('td'); dtd.className='date-cell';
-    const dateMain=document.createElement('div'); dateMain.className='date-main';
-    dateMain.textContent=`${d}. ${MON[currentMonth].substring(0,3)}.`;
-    const dateDow=document.createElement('div');
-    dateDow.className='date-dow'+(isWE?' we':'');
-    dateDow.textContent=WT[dow];
-    dtd.appendChild(dateMain); dtd.appendChild(dateDow);
-    if(ftName){
-      const ftDiv=document.createElement('div'); ftDiv.className='feiertag-tag';
-      ftDiv.textContent=ftName;
-      if(!isGesetzlich){
-        ftDiv.title='Klicken zum Löschen';
-        ftDiv.style.cursor='pointer';
-        ftDiv.onclick=()=>{
-          if(confirm(`Feiertag "${ftName}" entfernen?`)){
-            setExtraFeiertag(ftKey, null); render();
-          }
+    if(isFirstRow){
+      const dateMain=document.createElement('div'); dateMain.className='date-main';
+      dateMain.textContent=`${d}. ${MON[currentMonth].substring(0,3)}.`;
+      const dateDow=document.createElement('div');
+      dateDow.className='date-dow'+(isWE?' we':'');
+      dateDow.textContent=WT[dow];
+      dtd.appendChild(dateMain); dtd.appendChild(dateDow);
+      if(ftName){
+        const ftDiv=document.createElement('div'); ftDiv.className='feiertag-tag';
+        ftDiv.textContent=ftName;
+        if(!isGesetzlich){
+          ftDiv.title='Klicken zum Löschen';
+          ftDiv.style.cursor='pointer';
+          ftDiv.onclick=()=>{
+            if(confirm(`Feiertag "${ftName}" entfernen?`)){
+              setExtraFeiertag(ftKey, null); render();
+            }
+          };
+        }
+        dtd.appendChild(ftDiv);
+      } else {
+        const addFtBtn=document.createElement('span');
+        addFtBtn.style.cssText='font-size:10px;color:var(--border2);cursor:pointer;margin-left:4px;user-select:none';
+        addFtBtn.textContent='＋';
+        addFtBtn.title='Feiertag eintragen';
+        addFtBtn.onclick=()=>{
+          const name=prompt(`Feiertag für ${d}. ${MON[currentMonth]} ${currentYear}:`);
+          if(name&&name.trim()){ setExtraFeiertag(ftKey, name.trim()); render(); }
         };
+        dateMain.appendChild(addFtBtn);
       }
-      dtd.appendChild(ftDiv);
-    } else {
-      // + Feiertag nur als kleines Symbol am Datum, kein sichtbarer Text
-      const addFtBtn=document.createElement('span');
-      addFtBtn.style.cssText='font-size:10px;color:var(--border2);cursor:pointer;margin-left:4px;user-select:none';
-      addFtBtn.textContent='＋';
-      addFtBtn.title='Feiertag eintragen';
-      addFtBtn.onclick=()=>{
-        const name=prompt(`Feiertag für ${d}. ${MON[currentMonth]} ${currentYear}:`);
-        if(name&&name.trim()){ setExtraFeiertag(ftKey, name.trim()); render(); }
-      };
-      dateMain.appendChild(addFtBtn);
     }
 
     // --- ART ---
@@ -615,11 +660,18 @@ function render(){
 
     // --- SOLL ZELLE ---
     const sollTd=document.createElement('td'); sollTd.className='soll-cell';
-    sollTd.textContent=solH>0?solH.toFixed(2):'—';
+    sollTd.textContent=isFirstRow&&solH>0?solH.toFixed(2):'';
 
-    // --- SPEICHERN BUTTON ---
+    // --- SPEICHERN / LÖSCHEN BUTTON ---
     const saveBtn=document.createElement('button'); saveBtn.className='save-btn';
     saveBtn.textContent='Speichern';
+    // Löschen-Button für Folgezeilen
+    const delBtn=document.createElement('button');
+    delBtn.textContent='✕';
+    delBtn.style.cssText='display:'+(rowIdx>0?'inline-block':'none')+';margin-left:4px;height:34px;width:34px;border-radius:var(--rs);border:1px solid var(--danger-bg);background:var(--danger-bg);color:var(--danger);cursor:pointer;font-size:13px';
+    delBtn.onclick=()=>{
+      if(confirm('Zeile löschen?')){ deleteRowAt(currentMA,currentMonth,currentYear,d,rowIdx); render(); }
+    };
 
     // Live-Summe berechnen – NUR summeTd aktualisieren, NICHTS anderes
     function updateLiveSum(){
@@ -697,7 +749,7 @@ function render(){
         pauseFrei: freiAktiv,
         notiz:  notizIn.value
       };
-      saveRowData(currentMA, currentMonth, currentYear, d, obj);
+      saveRowAt(currentMA, currentMonth, currentYear, d, rowIdx, obj);
       saveBtn.className='save-btn saved';
       saveBtn.textContent='✓ Gespeichert';
       // Summe noch einmal sicher aktualisieren
@@ -711,77 +763,15 @@ function render(){
     // Zeile zusammenbauen
     const td=(el)=>{ const t=document.createElement('td'); t.appendChild(el); return t; };
     tr.setAttribute('data-day', d);
-    tr.onclick=()=>setActiveRow(d);
-    tr.append(dtd, td(artSel), td(startIn), td(endeIn), td(pauseWrap), summeTd, sollTd, td(notizIn), td(saveBtn));
+    tr.setAttribute('data-row-idx', rowIdx);
+    tr.onclick=()=>{ activeRowDay=d; activeRowIdx=rowIdx; setActiveRow(d,rowIdx); };
+    const saveTd=document.createElement('td');
+    saveTd.style.whiteSpace='nowrap';
+    saveTd.appendChild(saveBtn); saveTd.appendChild(delBtn);
+    tr.append(dtd, td(artSel), td(startIn), td(endeIn), td(pauseWrap), summeTd, sollTd, td(notizIn), saveTd);
     tb.appendChild(tr);
-
-    // Extra-Zeilen für diesen Tag anzeigen
-    const k2=rkey(currentMA,currentMonth,currentYear);
-    if(allData[k2]){
-      Object.keys(allData[k2]).filter(ek=>ek.startsWith('extra_')&&ek.endsWith('_'+d)).sort().forEach(ek=>{
-        const erow=allData[k2][ek]||{};
-        const epv=parseInt(erow.pause)||0;
-        const esm=erow.art?calcSumme(erow.start||DEF_START,erow.ende,epv):null;
-        if(erow.art&&esm!==null) ist+=esm;
-        const etr=document.createElement('tr');
-        etr.setAttribute('data-day',ek);
-        etr.onclick=()=>setActiveRow(ek);
-        etr.style.background='var(--surface2)';
-        const edtd=document.createElement('td');edtd.className='date-cell';
-        edtd.innerHTML='<div class="date-dow" style="padding-left:10px;color:var(--text3)">↳ Extra</div>';
-        const eartSel=document.createElement('select');eartSel.className='f';
-        ARTEN.forEach(a=>{const o=document.createElement('option');o.value=a;o.textContent=a||'–';if((erow.art||'')===a)o.selected=true;eartSel.appendChild(o);});
-        const estartIn=makeTimeSelect(erow.start||DEF_START);
-        const eendeIn=makeTimeSelect(erow.ende||'');
-        const epw=document.createElement('div');epw.className='pause-wrap';
-        const eps=document.createElement('select');eps.className='f';
-        [0,15,30,45].forEach(p=>{const o=document.createElement('option');o.value=p;o.textContent=p+' min';if(!erow.pauseFrei&&epv===p)o.selected=true;eps.appendChild(o);});
-        const epf=document.createElement('option');epf.value='frei';epf.textContent='Frei…';if(erow.pauseFrei)epf.selected=true;eps.appendChild(epf);
-        const epn=document.createElement('input');epn.type='number';epn.min=0;epn.max=480;epn.placeholder='min';epn.className='f f-time pause-frei';
-        if(erow.pauseFrei){epn.style.display='block';epn.value=epv;}
-        eps.onchange=()=>{if(eps.value==='frei'){epn.style.display='block';epn.focus();}else{epn.style.display='none';}eLive();};
-        epn.oninput=eLive;epw.appendChild(eps);epw.appendChild(epn);
-        const eni=document.createElement('input');eni.type='text';eni.className='f f-note';eni.placeholder='Notiz…';eni.value=erow.notiz||'';
-        const est=document.createElement('td');est.className='summe-cell'+(erow.art&&esm!==null?' filled':'');
-        est.textContent=(erow.art&&esm!==null)?esm.toFixed(2):'—';
-        const esolt=document.createElement('td');esolt.className='soll-cell';esolt.textContent='—';
-        const esb=document.createElement('button');esb.className='save-btn';esb.textContent='Speichern';
-        const edb=document.createElement('button');
-        edb.style.cssText='height:34px;padding:0 8px;border-radius:var(--rs);border:1px solid var(--danger);background:var(--danger-bg);color:var(--danger);font-size:12px;cursor:pointer;flex-shrink:0';
-        edb.textContent='✕';edb.title='Zeile löschen';
-        edb.onclick=(ev)=>{ev.stopPropagation();if(confirm('Extra-Zeile löschen?')){const k3=rkey(currentMA,currentMonth,currentYear);if(allData[k3])delete allData[k3][ek];schedulePush();render();}};
-        function eLive(){
-          const s=estartIn.value||DEF_START,e2=eendeIn.value;
-          const p=eps.value==='frei'?(parseInt(epn.value)||0):(parseInt(eps.value)||0);
-          const lv=calcSumme(s,e2,p);
-          est.textContent=(eartSel.value&&lv!==null)?lv.toFixed(2):'—';
-          est.className='summe-cell'+((eartSel.value&&lv!==null)?' filled':'');
-          esb.className='save-btn dirty';esb.textContent='Speichern';
-        }
-        eartSel.onchange=eLive;estartIn.onchange=eLive;eendeIn.onchange=eLive;
-        eni.oninput=()=>{esb.className='save-btn dirty';esb.textContent='Speichern';};
-        esb.onclick=()=>{
-          if(!eartSel.value){alert('Bitte Art auswählen');eartSel.focus();return;}
-          if(!eendeIn.value){alert('Bitte Endzeit eintragen');eendeIn.focus();return;}
-          const fa=eps.value==='frei';
-          const ps=fa?(parseInt(epn.value)||0):(parseInt(eps.value)||0);
-          const obj={art:eartSel.value,start:estartIn.value||DEF_START,ende:eendeIn.value,pause:ps,pauseFrei:fa,notiz:eni.value};
-          const k3=rkey(currentMA,currentMonth,currentYear);
-          if(!allData[k3])allData[k3]={};allData[k3][ek]=obj;schedulePush();
-          esb.className='save-btn saved';esb.textContent='✓ Gespeichert';
-          const sm3=calcSumme(obj.start,obj.ende,ps);
-          est.textContent=(obj.art&&sm3!==null)?sm3.toFixed(2):'—';
-          est.className='summe-cell'+((obj.art&&sm3!==null)?' filled':'');
-          setTimeout(updateSummary,200);
-        };
-        const etd=(el)=>{const t=document.createElement('td');t.appendChild(el);return t;};
-        const estd=document.createElement('td');estd.style.cssText='display:flex;gap:3px;padding:5px 5px';
-        estd.appendChild(esb);estd.appendChild(edb);
-        etr.append(edtd,etd(eartSel),etd(estartIn),etd(eendeIn),etd(epw),est,esolt,etd(eni),estd);
-        tb.appendChild(etr);
-      });
-    }
-  }
+    }); // end forEach rowIdx
+  } // end for day
 
   // Gesamtzahlen
   const diff=ist-sol;
@@ -821,25 +811,27 @@ function exportPDF(){
   for(let d=1;d<=n;d++){
     const date=new Date(currentYear,currentMonth,d), dow=date.getDay();
     const ftName=ft[dkey(date)]||'', isWE=dow===0||dow===6, isFT=!!ftName&&!isWE;
-    const row=getRow(currentMA,currentMonth,currentYear,d);
+    const dayRows=getRows(currentMA,currentMonth,currentYear,d);
     const solH=getSoll(date,ft);
     if(solH>0) sol+=solH;
-    const startExp=row.start||DEF_START;
-    const pvRaw=parseInt(row.pause)||0;
-    const kk=row.art?exportKorrektur(startExp,row.ende,pvRaw):{pause:pvRaw,ende:row.ende||''};
-    const sm=row.art?calcSumme(startExp,kk.ende,kk.pause):null;
-    if(row.art&&sm!==null) ist+=sm;
     const ftLabel=ftName?(' '+ftName):'';
-    rows.push([
-      WT[dow]+' '+String(d).padStart(2)+'.'+ftLabel,
-      row.art||'',
-      row.art?startExp:'',
-      kk.ende||'',
-      row.art?(kk.pause+' min'):'',
-      (row.art&&sm!==null)?sm.toFixed(2):'',
-      solH>0?solH.toFixed(2):'',
-      isWE, isFT, !!row.art
-    ]);
+    dayRows.forEach((row,ri)=>{
+      const startExp=row.start||DEF_START;
+      const pvRaw=parseInt(row.pause)||0;
+      const kk=row.art?exportKorrektur(startExp,row.ende,pvRaw):{pause:pvRaw,ende:row.ende||''};
+      const sm=row.art?calcSumme(startExp,kk.ende,kk.pause):null;
+      if(row.art&&sm!==null) ist+=sm;
+      rows.push([
+        ri===0?(WT[dow]+' '+String(d).padStart(2)+'.'+ftLabel):'↳',
+        row.art||'',
+        row.art?startExp:'',
+        kk.ende||'',
+        row.art?(kk.pause+' min'):'',
+        (row.art&&sm!==null)?sm.toFixed(2):'',
+        ri===0&&solH>0?solH.toFixed(2):'',
+        isWE, isFT, !!row.art
+      ]);
+    });
   }
 
   // ── Tabelle ────────────────────────────────────────────────
@@ -933,15 +925,21 @@ function exportCSV(){
   let ist=0, sol=0;
   for(let d=1;d<=n;d++){
     const date=new Date(currentYear,currentMonth,d), dow=date.getDay();
-    const row=getRow(currentMA,currentMonth,currentYear,d);
+    const dayRows=getRows(currentMA,currentMonth,currentYear,d);
     const solH=getSoll(date,ft);
     if(solH>0) sol+=solH;
-    const startExp=row.start||DEF_START;
-    const pvRaw=parseInt(row.pause)||0;
-    const kk=row.art?exportKorrektur(startExp,row.ende,pvRaw):{pause:pvRaw,ende:row.ende||''};
-    const sm=row.art?calcSumme(startExp,kk.ende,kk.pause):null;
-    if(row.art&&sm!==null) ist+=sm;
-    csv+=`"${d}. ${MON[currentMonth]} ${currentYear}";${WT[dow]};"${ft[dkey(date)]||''}";${row.art||''};${row.art?startExp:''};${kk.ende};${kk.pause};${(row.art&&sm!==null)?sm.toFixed(2):'0.00'};${solH.toFixed(2)}\n`;
+    dayRows.forEach((row,ri)=>{
+      const startExp=row.start||DEF_START;
+      const pvRaw=parseInt(row.pause)||0;
+      const kk=row.art?exportKorrektur(startExp,row.ende,pvRaw):{pause:pvRaw,ende:row.ende||''};
+      const sm=row.art?calcSumme(startExp,kk.ende,kk.pause):null;
+      if(row.art&&sm!==null) ist+=sm;
+      const datumStr=ri===0?`"${d}. ${MON[currentMonth]} ${currentYear}"`:'""';
+      const tagStr=ri===0?WT[dow]:'';
+      const ftStr=ri===0?(ft[dkey(date)]||''):'';
+      const sollStr=ri===0?solH.toFixed(2):'';
+      csv+=`${datumStr};${tagStr};"${ftStr}";${row.art||''};${row.art?startExp:''};${kk.ende};${kk.pause};${(row.art&&sm!==null)?sm.toFixed(2):'0.00'};${sollStr}\n`;
+    });
   }
   const diff=ist-sol;
   csv+=`\nGesamt;;;;;;;${ist.toFixed(2)};${sol.toFixed(2)};\nDifferenz;;;;;;;${(diff>=0?'+':'')+diff.toFixed(2)};;`;
@@ -1013,7 +1011,8 @@ function exportBackup(){
 }
 
 // ---- QUICK ACTIONS ----
-let activeRowDay = null; // welche Zeile ist aktiv (für + Zeile einfügen)
+let activeRowDay = null;
+let activeRowIdx = 0; // welcher Eintrag innerhalb des Tages
 
 function roundTo15(date){
   const m = date.getMinutes();
@@ -1083,20 +1082,26 @@ function quickAddRow(){
     alert('Bitte zuerst eine Zeile aktivieren (antippen) oder Start/Stop drücken.');
     return;
   }
-  // Extra-Zeile nach activeRowDay einfügen
-  const k = rkey(currentMA, currentMonth, currentYear);
-  if(!allData[k]) allData[k] = {};
-  // Finde nächste freie extra_X_day Nummer
-  let idx = 1;
-  while(allData[k]['extra_'+idx+'_'+activeRowDay]) idx++;
-  const extraKey = 'extra_'+idx+'_'+activeRowDay;
-  allData[k][extraKey] = {art:'', start:DEF_START, ende:'', pause:0, notiz:''};
-  schedulePush();
+  const d = activeRowDay;
+  const rows = getRows(currentMA, currentMonth, currentYear, d);
+  const prevRow = rows[activeRowIdx] || {};
+
+  // Startzeit = Endzeit der vorherigen Zeile
+  let newStart = prevRow.ende || DEF_START;
+
+  // Validierung: Startzeit darf nicht vor Endzeit der vorherigen liegen
+  if(prevRow.ende && newStart < prevRow.ende){
+    alert('Startzeit ('+newStart+') darf nicht vor der Endzeit der vorherigen Zeile ('+prevRow.ende+') liegen.');
+    newStart = prevRow.ende;
+  }
+
+  const newRow = {art:'', start:newStart, ende:'', pause:0, pauseFrei:false, notiz:''};
+  insertRowAfter(currentMA, currentMonth, currentYear, d, activeRowIdx, newRow);
+  activeRowIdx = activeRowIdx + 1;
   render();
-  // Zur eingefügten Zeile scrollen
   setTimeout(()=>{
-    const newRow = document.querySelector(`tr[data-day="${extraKey}"]`);
-    if(newRow){ newRow.scrollIntoView({behavior:'smooth', block:'center'}); setActiveRow(extraKey); }
+    const newTr = document.querySelector(`tr[data-day="${d}"][data-row-idx="${activeRowIdx}"]`);
+    if(newTr){ newTr.scrollIntoView({behavior:'smooth', block:'center'}); setActiveRow(d, activeRowIdx); }
   }, 200);
 }
 
@@ -1109,11 +1114,11 @@ function scrollToToday(){
   }, 200);
 }
 
-function setActiveRow(d){
-  // Vorherige aktive Zeile demarkieren
+function setActiveRow(d, idx){
   document.querySelectorAll('tr.q-row-active').forEach(r=>r.classList.remove('q-row-active'));
   activeRowDay = d;
-  const row = document.querySelector(`tr[data-day="${d}"]`);
+  activeRowIdx = idx || 0;
+  const row = document.querySelector(`tr[data-day="${d}"][data-row-idx="${activeRowIdx}"]`);
   if(row) row.classList.add('q-row-active');
 }
 
