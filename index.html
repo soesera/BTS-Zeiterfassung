@@ -221,6 +221,7 @@ tr.row-today{outline:2px solid var(--accent);outline-offset:-2px;position:relati
       <span><span class="leg-badge leg-S">S</span> Schlechtwetter</span>
       <span><span class="leg-badge leg-AB">AB</span> Arztbesuch</span>
       <span><span class="leg-badge leg-P">P</span> Pflegeurlaub</span>
+      <span><span class="leg-badge leg-A">FA</span> Feiertag Arbeit</span>
     </div>
     <p id="bin-info" style="margin-top:1rem;font-size:12px;color:var(--text3)"></p>
   </div>
@@ -230,13 +231,13 @@ tr.row-today{outline:2px solid var(--accent);outline-offset:-2px;position:relati
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script>
 const MITARBEITER = ['Patrick','Marinko','Herbert'];
-const ARTEN = ['','A','U','F','K','S','AB','P'];
+const ARTEN = ['','A','U','F','FA','K','S','AB','P'];
 const WT = ['So.','Mo.','Di.','Mi.','Do.','Fr.','Sa.'];
 const MON = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
 const JB = 'https://api.jsonbin.io/v3';
 const DEF_START = '06:30';
 const APP_VERSION = '4';
-const APP_BUILD  = '2026-04-09 v1.8';
+const APP_BUILD  = '2026-04-09 v2.0';
 
 let apiKey='', binId='', allData={};
 let currentMA=0, currentMonth=new Date().getMonth(), currentYear=new Date().getFullYear();
@@ -287,8 +288,8 @@ function setExtraFeiertag(dateStr, name){
 function dkey(date){ return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`; }
 function getSoll(date, ft){
   const d=date.getDay(), k=dkey(date);
-  if(ft[k]) return 0;  // Jeder Feiertag (gesetzlich oder manuell) = 0 Soll
-  if(d===0||d===6) return 0;
+  if(d===0||d===6) return 0;      // Wochenende immer 0
+  if(ft[k]) return 8.25;          // Feiertag = 8.25h Soll
   if(d===5) return 6.0;
   return 8.25;
 }
@@ -491,10 +492,16 @@ function changeMonth(d){
 
 // ---- SUMMARY UPDATE (ohne Tabelle neu bauen) ----
 function calcDayTotal(mi,mo,yr,d){
+  const ft=getAllFeiertage(currentYear);
+  const date=new Date(currentYear,mo,d);
+  const solH=getSoll(date,ft);
   const rows=getRows(mi,mo,yr,d);
   let total=0;
   rows.forEach(row=>{
-    if(row.art){
+    if(row.art==='F'){
+      // Feiertag: Ist = Soll automatisch
+      total+=solH;
+    } else if(row.art){
       const sm=calcSumme(row.start||DEF_START, row.ende, parseInt(row.pause)||0);
       if(sm!==null) total+=sm;
     }
@@ -679,7 +686,11 @@ function render(){
       const e=endeIn.value;
       const p=pauseSel.value==='frei'?(parseInt(pauseNum.value)||0):(parseInt(pauseSel.value)||0);
       const art=artSel.value;
-      if(art && e){
+      if(art==='F'){
+        // Feiertag: Ist = Soll automatisch
+        summeTd.textContent=solH>0?solH.toFixed(2):'—';
+        summeTd.className='summe-cell'+(solH>0?' filled':'');
+      } else if(art && e){
         const live=calcSumme(s, e, p);
         summeTd.textContent=live!==null?live.toFixed(2):'—';
         summeTd.className='summe-cell'+(live!==null?' filled':'');
@@ -693,8 +704,8 @@ function render(){
 
     // Eingabe-Events – alle gehen über updateLiveSum, KEIN render()
     artSel.onchange=()=>{
-      // Bei Urlaub: Ende automatisch auf Sollzeit setzen (editierbar)
-      if(artSel.value==='U' && solH>0 && !endeIn.value){
+      if((artSel.value==='U'||artSel.value==='F') && solH>0 && !endeIn.value){
+        // Urlaub + Feiertag: Ende automatisch auf Sollzeit
         const startMins = (()=>{
           const sv=startIn.value||DEF_START;
           const sp=sv.split(':');
@@ -734,11 +745,17 @@ function render(){
         alert('Bitte Art auswählen (A, U, F, ...)');
         artSel.focus(); return;
       }
-      if(!endeSave){
+      // Bei F: kein Start/Ende nötig
+      if(artVal!=='F' && !endeSave){
         alert('Bitte Endzeit eintragen');
         endeIn.focus(); return;
       }
       const startSave = startIn.value || DEF_START;
+      // Validierung: Endzeit muss nach Startzeit liegen (außer bei F)
+      if(artVal!=='F' && endeSave && endeSave <= startSave){
+        alert('Endzeit ('+endeSave+') muss nach der Startzeit ('+startSave+') liegen.');
+        endeIn.focus(); return;
+      }
       const freiAktiv = pauseSel.value==='frei';
       const pauseSave = freiAktiv ? (parseInt(pauseNum.value)||0) : (parseInt(pauseSel.value)||0);
       const obj={
@@ -819,8 +836,9 @@ function exportPDF(){
       const startExp=row.start||DEF_START;
       const pvRaw=parseInt(row.pause)||0;
       const kk=row.art?exportKorrektur(startExp,row.ende,pvRaw):{pause:pvRaw,ende:row.ende||''};
-      const sm=row.art?calcSumme(startExp,kk.ende,kk.pause):null;
-      if(row.art&&sm!==null) ist+=sm;
+      const smRaw=row.art==='F'?solH:(row.art?calcSumme(startExp,kk.ende,kk.pause):null);
+      const sm=smRaw;
+      if(sm!==null&&row.art) ist+=sm;
       rows.push([
         ri===0?(WT[dow]+' '+String(d).padStart(2)+'.'+ftLabel):'↳',
         row.art||'',
@@ -932,8 +950,9 @@ function exportCSV(){
       const startExp=row.start||DEF_START;
       const pvRaw=parseInt(row.pause)||0;
       const kk=row.art?exportKorrektur(startExp,row.ende,pvRaw):{pause:pvRaw,ende:row.ende||''};
-      const sm=row.art?calcSumme(startExp,kk.ende,kk.pause):null;
-      if(row.art&&sm!==null) ist+=sm;
+      const smRaw=row.art==='F'?solH:(row.art?calcSumme(startExp,kk.ende,kk.pause):null);
+      const sm=smRaw;
+      if(sm!==null&&row.art) ist+=sm;
       const datumStr=ri===0?`"${d}. ${MON[currentMonth]} ${currentYear}"`:'""';
       const tagStr=ri===0?WT[dow]:'';
       const ftStr=ri===0?(ft[dkey(date)]||''):'';
