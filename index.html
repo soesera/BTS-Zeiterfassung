@@ -237,7 +237,7 @@ const MON = ['Januar','Februar','März','April','Mai','Juni','Juli','August','Se
 const JB = 'https://api.jsonbin.io/v3';
 const DEF_START = '06:30';
 const APP_VERSION = '4';
-const APP_BUILD  = '2026-04-09 v2.0';
+const APP_BUILD  = '2026-05-18 v2.1';
 
 let apiKey='', binId='', allData={};
 let currentMA=0, currentMonth=new Date().getMonth(), currentYear=new Date().getFullYear();
@@ -573,10 +573,13 @@ function render(){
 
     rows_d.forEach((row, rowIdx)=>{
     const isFirstRow=(rowIdx===0);
+    // Feiertag automatisch mit F vorbelegen wenn noch kein Art-Wert
+    const autoF = isFT && !row.art;
+    const rowArt = autoF ? 'F' : (row.art||'');
     const pv=parseInt(row.pause)||0;
     const startSaved=row.start||'';
     const endeSaved=row.ende||'';
-    const sm=row.art ? calcSumme(startSaved||DEF_START, endeSaved, pv) : null;
+    const sm=rowArt==='F' ? solH : (rowArt ? calcSumme(startSaved||DEF_START, endeSaved, pv) : null);
 
     const tr=document.createElement('tr');
     let cls=isWE?'row-weekend':isFT?'row-feiertag':'';
@@ -622,7 +625,7 @@ function render(){
     const artSel=document.createElement('select'); artSel.className='f';
     ARTEN.forEach(a=>{
       const o=document.createElement('option'); o.value=a; o.textContent=a||'–';
-      if((row.art||'')===a) o.selected=true;
+      if(rowArt===a) o.selected=true;
       artSel.appendChild(o);
     });
 
@@ -662,8 +665,8 @@ function render(){
 
     // --- SUMME ZELLE ---
     const summeTd=document.createElement('td');
-    summeTd.className='summe-cell'+(row.art&&sm!==null?' filled':'');
-    summeTd.textContent=(row.art&&sm!==null)?sm.toFixed(2):'—';
+    summeTd.className='summe-cell'+(rowArt&&sm!==null?' filled':'');
+    summeTd.textContent=(rowArt&&sm!==null)?sm.toFixed(2):'—';
 
     // --- SOLL ZELLE ---
     const sollTd=document.createElement('td'); sollTd.className='soll-cell';
@@ -685,7 +688,7 @@ function render(){
       const s=startIn.value||DEF_START;
       const e=endeIn.value;
       const p=pauseSel.value==='frei'?(parseInt(pauseNum.value)||0):(parseInt(pauseSel.value)||0);
-      const art=artSel.value;
+      const art=artSel.value||(autoF?'F':'');
       if(art==='F'){
         // Feiertag: Ist = Soll automatisch
         summeTd.textContent=solH>0?solH.toFixed(2):'—';
