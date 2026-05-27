@@ -229,7 +229,7 @@ const SUPABASE_TABLE = 'zeiterfassung';
 const DEF_START = '06:30';
 const RESTORE_DATA = {"0_2026_2": {"2": [{"art": "A", "start": "06:30", "ende": "12:00", "pause": 30, "pauseFrei": false, "notiz": ""}], "3": [{"art": "A", "start": "06:30", "ende": "16:30", "pause": 30, "pauseFrei": false, "notiz": ""}], "4": [{"art": "A", "start": "06:30", "ende": "15:00", "pause": 30, "pauseFrei": false, "notiz": ""}]}, "0_2026_3": {"1": [{"art": "A", "start": "06:30", "ende": "15:00", "pause": 30, "pauseFrei": false, "notiz": ""}], "2": [{"art": "A", "start": "06:30", "ende": "15:00", "pause": 30, "pauseFrei": false, "notiz": ""}], "3": [{"art": "U", "start": "06:30", "ende": "12:30", "pause": 0, "pauseFrei": false, "notiz": ""}], "7": [{"art": "A", "start": "06:30", "ende": "14:30", "pause": 30, "pauseFrei": false, "notiz": ""}], "8": [{"art": "A", "start": "06:30", "ende": "17:30", "pause": 30, "pauseFrei": false, "notiz": ""}], "9": [{"art": "A", "start": "06:30", "ende": "16:00", "pause": 30, "pauseFrei": false, "notiz": ""}], "10": [{"art": "U", "start": "06:30", "ende": "12:30", "pause": 0, "pauseFrei": false, "notiz": ""}], "13": [{"art": "A", "start": "06:30", "ende": "12:30", "pause": 0, "pauseFrei": false, "notiz": ""}], "14": [{"art": "A", "start": "06:30", "ende": "16:00", "pause": 30, "pauseFrei": false, "notiz": ""}], "15": [{"art": "A", "start": "05:15", "ende": "18:30", "pause": 30, "pauseFrei": false, "notiz": ""}], "16": [{"art": "A", "start": "06:30", "ende": "20:30", "pause": 30, "pauseFrei": false, "notiz": ""}], "17": [{"art": "A", "start": "06:30", "ende": "12:00", "pause": 0, "pauseFrei": false, "notiz": ""}], "20": [{"art": "A", "start": "05:00", "ende": "20:00", "pause": 30, "pauseFrei": false, "notiz": ""}], "21": [{"art": "A", "start": "06:30", "ende": "17:00", "pause": 30, "pauseFrei": false, "notiz": ""}], "22": [{"art": "A", "start": "06:30", "ende": "14:30", "pause": 30, "pauseFrei": false, "notiz": ""}], "23": [{"art": "A", "start": "06:30", "ende": "15:00", "pause": 30, "pauseFrei": false, "notiz": ""}], "24": [{"art": "U", "start": "06:30", "ende": "12:30", "pause": 0, "pauseFrei": false, "notiz": ""}], "27": [{"art": "A", "start": "06:30", "ende": "15:00", "pause": 30, "pauseFrei": false, "notiz": ""}], "28": [{"art": "A", "start": "07:00", "ende": "12:30", "pause": 0, "pauseFrei": false, "notiz": ""}], "29": [{"art": "A", "start": "06:30", "ende": "14:00", "pause": 30, "pauseFrei": false, "notiz": ""}], "30": [{"art": "A", "start": "06:30", "ende": "16:30", "pause": 30, "pauseFrei": false, "notiz": ""}]}, "0_2026_4": {"1": [{"art": "F", "start": "", "ende": "", "pause": 0, "pauseFrei": false, "notiz": ""}], "4": [{"art": "A", "start": "06:30", "ende": "15:00", "pause": 30, "pauseFrei": false, "notiz": ""}], "5": [{"art": "A", "start": "06:30", "ende": "17:15", "pause": 30, "pauseFrei": false, "notiz": ""}], "6": [{"art": "A", "start": "06:30", "ende": "17:00", "pause": 30, "pauseFrei": false, "notiz": ""}], "7": [{"art": "A", "start": "06:30", "ende": "16:30", "pause": 30, "pauseFrei": false, "notiz": ""}], "8": [{"art": "A", "start": "06:30", "ende": "11:30", "pause": 0, "pauseFrei": false, "notiz": ""}], "9": [{"art": "A", "start": "06:30", "ende": "12:30", "pause": 0, "pauseFrei": false, "notiz": ""}], "11": [{"art": "A", "start": "06:30", "ende": "17:30", "pause": 30, "pauseFrei": false, "notiz": ""}], "12": [{"art": "A", "start": "06:30", "ende": "16:30", "pause": 30, "pauseFrei": false, "notiz": ""}], "13": [{"art": "A", "start": "06:30", "ende": "16:30", "pause": 30, "pauseFrei": false, "notiz": ""}], "14": [{"art": "F", "start": "", "ende": "", "pause": 0, "pauseFrei": false, "notiz": ""}], "15": [{"art": "U", "start": "06:30", "ende": "12:30", "pause": 0, "pauseFrei": false, "notiz": ""}], "18": [{"art": "A", "start": "06:30", "ende": "18:30", "pause": 30, "pauseFrei": false, "notiz": ""}], "19": [{"art": "A", "start": "06:30", "ende": "17:30", "pause": 30, "pauseFrei": false, "notiz": ""}], "20": [{"art": "A", "start": "06:30", "ende": "16:00", "pause": 30, "pauseFrei": false, "notiz": ""}], "25": [{"art": "F", "start": "", "ende": "", "pause": 0, "pauseFrei": false, "notiz": ""}]}};
 const APP_VERSION = '4';
-const APP_BUILD  = '2026-05-27 v2.3';
+const APP_BUILD  = '2026-05-27 v2.5';
 
 let apiKey='', binId='', allData={};
 let currentMA=0, currentMonth=new Date().getMonth(), currentYear=new Date().getFullYear();
@@ -471,7 +471,7 @@ function startApp(){
         `<a href="${base}?ma=${i}" style="color:var(--accent);margin-right:16px" onclick="navigator.clipboard&&navigator.clipboard.writeText('${base}?ma=${i}')">🔗 ${n}</a>`
       ).join('') +
       `<br><br><a href="${base}?admin" style="color:var(--accent);margin-right:16px">⚙️ Admin-Link</a>` +
-      '<span style="font-size:11px;color:var(--text3)"> – auf Link klicken zum Kopieren</span><br><span style="font-size:11px;color:var(--text3)">Version: '+APP_BUILD+'</span>&nbsp;&nbsp;<button onclick="resetConnection()" style="font-size:11px;padding:2px 8px;border-radius:4px;border:1px solid var(--border);background:transparent;cursor:pointer;color:var(--text3)">Neu verbinden</button>';
+      '<span style="font-size:11px;color:var(--text3)"> – auf Link klicken zum Kopieren</span><br><span style="font-size:11px;color:var(--text3)">Version: '+APP_BUILD+'</span>&nbsp;&nbsp;<button onclick="resetConnection()" style="font-size:11px;padding:2px 8px;border-radius:4px;border:1px solid var(--border);background:transparent;cursor:pointer;color:var(--text3)">Neu verbinden</button>&nbsp;&nbsp;<button onclick="importBackupData()" style="font-size:11px;padding:2px 8px;border-radius:4px;border:1px solid #b2d4bc;background:var(--accent-bg);cursor:pointer;color:var(--accent-text)">📥 Backup-Daten importieren</button>';
   } else {
     document.getElementById('bin-info').innerHTML = 'Angemeldet als: '+MITARBEITER[currentMA]+' · Version: '+APP_BUILD+'&nbsp;&nbsp;<button onclick="resetConnection()" style="font-size:11px;padding:2px 8px;border-radius:4px;border:1px solid var(--border);background:transparent;cursor:pointer;color:var(--text3)">Neu verbinden</button>';
   }
@@ -994,6 +994,26 @@ function resetConnection(){
   if(confirm('Verbindung zurücksetzen?')){
     localStorage.removeItem('zt_connected');
     location.reload();
+  }
+}
+
+async function importBackupData(){
+  if(!confirm('Backup-Daten importieren? (Patrick März, April, Mai 2026)\nBestehende Daten werden NICHT überschrieben – nur leere Monate werden gefüllt.')) return;
+  // Nur importieren wenn der Key noch nicht existiert
+  const imported = JSON.parse(JSON.stringify(RESTORE_DATA));
+  let changed = false;
+  Object.keys(imported).forEach(k=>{
+    if(!allData[k] || Object.keys(allData[k]).length===0){
+      allData[k] = imported[k];
+      changed = true;
+    }
+  });
+  if(changed){
+    await pushData();
+    render();
+    alert('Import erfolgreich!');
+  } else {
+    alert('Keine leeren Monate gefunden – nichts importiert.');
   }
 }
 
