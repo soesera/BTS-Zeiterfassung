@@ -134,22 +134,10 @@ tr.row-today{outline:2px solid var(--accent);outline-offset:-2px;position:relati
 
 <div id="setup-screen">
   <div class="setup-card">
-    <h1>Zeiterfassung einrichten</h1>
-    <p>Einmalige Einrichtung mit einem kostenlosen JSONBin-Account:</p>
-    <ol>
-      <li>Gehe zu <a href="https://jsonbin.io" target="_blank">jsonbin.io</a> und registriere dich</li>
-      <li>Klicke auf <strong>API Keys</strong> → kopiere den <strong>Master Key</strong> (beginnt mit $2a$10$…)</li>
-      <li>Füge ihn unten ein und klicke <strong>Verbinden</strong></li>
-      <li>Die angezeigte Bin-ID auf weiteren iPads ebenfalls eingeben</li>
-    </ol>
-    <div class="fg">
-      <label>Master Key</label>
-      <input type="text" id="api-key-input" placeholder="$2a$10$..." autocomplete="off" autocorrect="off" spellcheck="false">
-    </div>
-    <div class="fg" id="bin-id-group" style="display:none">
-      <label>Bin-ID (für weitere iPads)</label>
-      <input type="text" id="bin-id-input" placeholder="z.B. 64a1b2c3d4e5f6..." autocomplete="off" spellcheck="false">
-    </div>
+    <h1>BTS Zeiterfassung</h1>
+    <p>Einmalige Einrichtung – nur einmal pro Gerät nötig.</p>
+    <input type="hidden" id="api-key-input" value="">
+    <input type="hidden" id="bin-id-input" value="">
     <button class="btn-primary" onclick="setupConnect()">Verbinden</button>
     <div class="setup-error" id="setup-error"></div>
     <p style="margin-top:1rem;font-size:12px;color:var(--text3)">
@@ -234,10 +222,13 @@ const MITARBEITER = ['Patrick','Marinko','Herbert'];
 const ARTEN = ['','A','U','F','FA','K','S','AB','P'];
 const WT = ['So.','Mo.','Di.','Mi.','Do.','Fr.','Sa.'];
 const MON = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
-const JB = 'https://api.jsonbin.io/v3';
+const SUPABASE_URL = 'https://xqhzjcbuqruuazmijnol.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhxaHpqY2J1cXJ1dWF6bWlqbm9sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4NzgxMzksImV4cCI6MjA5NTQ1NDEzOX0.buhc3klHQSWUUhFPcfJY7I_9PgahbzSJdGAr3gKBFtc';
+const SUPABASE_TABLE = 'zeiterfassung';
 const DEF_START = '06:30';
+const RESTORE_DATA = {"0_2026_2": {"2": [{"art": "A", "start": "06:30", "ende": "12:00", "pause": 30, "pauseFrei": false, "notiz": ""}], "3": [{"art": "A", "start": "06:30", "ende": "16:30", "pause": 30, "pauseFrei": false, "notiz": ""}], "4": [{"art": "A", "start": "06:30", "ende": "15:00", "pause": 30, "pauseFrei": false, "notiz": ""}]}, "0_2026_3": {"1": [{"art": "A", "start": "06:30", "ende": "15:00", "pause": 30, "pauseFrei": false, "notiz": ""}], "2": [{"art": "A", "start": "06:30", "ende": "15:00", "pause": 30, "pauseFrei": false, "notiz": ""}], "3": [{"art": "U", "start": "06:30", "ende": "12:30", "pause": 0, "pauseFrei": false, "notiz": ""}], "7": [{"art": "A", "start": "06:30", "ende": "14:30", "pause": 30, "pauseFrei": false, "notiz": ""}], "8": [{"art": "A", "start": "06:30", "ende": "17:30", "pause": 30, "pauseFrei": false, "notiz": ""}], "9": [{"art": "A", "start": "06:30", "ende": "16:00", "pause": 30, "pauseFrei": false, "notiz": ""}], "10": [{"art": "U", "start": "06:30", "ende": "12:30", "pause": 0, "pauseFrei": false, "notiz": ""}], "13": [{"art": "A", "start": "06:30", "ende": "12:30", "pause": 0, "pauseFrei": false, "notiz": ""}], "14": [{"art": "A", "start": "06:30", "ende": "16:00", "pause": 30, "pauseFrei": false, "notiz": ""}], "15": [{"art": "A", "start": "05:15", "ende": "18:30", "pause": 30, "pauseFrei": false, "notiz": ""}], "16": [{"art": "A", "start": "06:30", "ende": "20:30", "pause": 30, "pauseFrei": false, "notiz": ""}], "17": [{"art": "A", "start": "06:30", "ende": "12:00", "pause": 0, "pauseFrei": false, "notiz": ""}], "20": [{"art": "A", "start": "05:00", "ende": "20:00", "pause": 30, "pauseFrei": false, "notiz": ""}], "21": [{"art": "A", "start": "06:30", "ende": "17:00", "pause": 30, "pauseFrei": false, "notiz": ""}], "22": [{"art": "A", "start": "06:30", "ende": "14:30", "pause": 30, "pauseFrei": false, "notiz": ""}], "23": [{"art": "A", "start": "06:30", "ende": "15:00", "pause": 30, "pauseFrei": false, "notiz": ""}], "24": [{"art": "U", "start": "06:30", "ende": "12:30", "pause": 0, "pauseFrei": false, "notiz": ""}], "27": [{"art": "A", "start": "06:30", "ende": "15:00", "pause": 30, "pauseFrei": false, "notiz": ""}], "28": [{"art": "A", "start": "07:00", "ende": "12:30", "pause": 0, "pauseFrei": false, "notiz": ""}], "29": [{"art": "A", "start": "06:30", "ende": "14:00", "pause": 30, "pauseFrei": false, "notiz": ""}], "30": [{"art": "A", "start": "06:30", "ende": "16:30", "pause": 30, "pauseFrei": false, "notiz": ""}]}, "0_2026_4": {"1": [{"art": "F", "start": "", "ende": "", "pause": 0, "pauseFrei": false, "notiz": ""}], "4": [{"art": "A", "start": "06:30", "ende": "15:00", "pause": 30, "pauseFrei": false, "notiz": ""}], "5": [{"art": "A", "start": "06:30", "ende": "17:15", "pause": 30, "pauseFrei": false, "notiz": ""}], "6": [{"art": "A", "start": "06:30", "ende": "17:00", "pause": 30, "pauseFrei": false, "notiz": ""}], "7": [{"art": "A", "start": "06:30", "ende": "16:30", "pause": 30, "pauseFrei": false, "notiz": ""}], "8": [{"art": "A", "start": "06:30", "ende": "11:30", "pause": 0, "pauseFrei": false, "notiz": ""}], "9": [{"art": "A", "start": "06:30", "ende": "12:30", "pause": 0, "pauseFrei": false, "notiz": ""}], "11": [{"art": "A", "start": "06:30", "ende": "17:30", "pause": 30, "pauseFrei": false, "notiz": ""}], "12": [{"art": "A", "start": "06:30", "ende": "16:30", "pause": 30, "pauseFrei": false, "notiz": ""}], "13": [{"art": "A", "start": "06:30", "ende": "16:30", "pause": 30, "pauseFrei": false, "notiz": ""}], "14": [{"art": "F", "start": "", "ende": "", "pause": 0, "pauseFrei": false, "notiz": ""}], "15": [{"art": "U", "start": "06:30", "ende": "12:30", "pause": 0, "pauseFrei": false, "notiz": ""}], "18": [{"art": "A", "start": "06:30", "ende": "18:30", "pause": 30, "pauseFrei": false, "notiz": ""}], "19": [{"art": "A", "start": "06:30", "ende": "17:30", "pause": 30, "pauseFrei": false, "notiz": ""}], "20": [{"art": "A", "start": "06:30", "ende": "16:00", "pause": 30, "pauseFrei": false, "notiz": ""}], "25": [{"art": "F", "start": "", "ende": "", "pause": 0, "pauseFrei": false, "notiz": ""}]}};
 const APP_VERSION = '4';
-const APP_BUILD  = '2026-05-18 v2.1';
+const APP_BUILD  = '2026-05-27 v2.2';
 
 let apiKey='', binId='', allData={};
 let currentMA=0, currentMonth=new Date().getMonth(), currentYear=new Date().getFullYear();
@@ -391,23 +382,36 @@ async function setupConnect(){
 }
 async function fetchData(){
   try{
-    const r=await fetch(`${JB}/b/${binId}/latest`,{headers:{'X-Master-Key':apiKey}});
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}?id=eq.main&select=data`,{
+      headers:{'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY}
+    });
     if(!r.ok) throw new Error(`HTTP ${r.status}`);
     const j=await r.json();
-    if(j.record&&typeof j.record==='object'&&!j.record.__init){
-      allData=j.record;
-    }
+    if(j.length>0 && j[0].data){ allData=j[0].data; }
     setSyncStatus('ok','synchronisiert ✓'); return true;
   }catch(e){ setSyncStatus('err','Fehler: '+e.message); return false; }
 }
 async function pushData(){
   try{
-    const r=await fetch(`${JB}/b/${binId}`,{method:'PUT',
-      headers:{'Content-Type':'application/json','X-Master-Key':apiKey},
-      body:JSON.stringify(allData)});
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}`,{
+      method:'POST',
+      headers:{
+        'apikey':SUPABASE_KEY,
+        'Authorization':'Bearer '+SUPABASE_KEY,
+        'Content-Type':'application/json',
+        'Prefer':'resolution=merge-duplicates'
+      },
+      body:JSON.stringify({id:'main', data:allData})
+    });
     if(!r.ok) throw new Error(`HTTP ${r.status}`);
     setSyncStatus('ok','gespeichert ✓');
-  }catch(e){ setSyncStatus('err','Fehler: '+e.message); }
+    // Lokales Backup im localStorage
+    try{ localStorage.setItem('zt_local_backup', JSON.stringify({ts:Date.now(),data:allData})); }catch(e){}
+  }catch(e){
+    setSyncStatus('err','Fehler: '+e.message);
+    // Bei Fehler lokal speichern
+    try{ localStorage.setItem('zt_pending', JSON.stringify(allData)); }catch(e2){}
+  }
 }
 function setSyncStatus(s,l){
   document.getElementById('sync-dot').className='sync-dot '+s;
@@ -447,7 +451,7 @@ function startApp(){
   if(isAdminMode){
     const base = window.location.origin + window.location.pathname;
     document.getElementById('bin-info').innerHTML =
-      'Bin-ID: <strong>'+binId+'</strong><br><br>' +
+      ''
       '<span style="font-size:12px;font-weight:500;color:var(--text2)">Mitarbeiter-Links (zum Weiterschicken):</span><br>' +
       MITARBEITER.map((n,i)=>
         `<a href="${base}?ma=${i}" style="color:var(--accent);margin-right:16px" onclick="navigator.clipboard&&navigator.clipboard.writeText('${base}?ma=${i}')">🔗 ${n}</a>`
@@ -455,7 +459,7 @@ function startApp(){
       `<br><br><a href="${base}?admin" style="color:var(--accent);margin-right:16px">⚙️ Admin-Link</a>` +
       '<span style="font-size:11px;color:var(--text3)"> – auf Link klicken zum Kopieren</span><br><span style="font-size:11px;color:var(--text3)">Version: '+APP_BUILD+'</span>&nbsp;&nbsp;<button onclick="resetConnection()" style="font-size:11px;padding:2px 8px;border-radius:4px;border:1px solid var(--border);background:transparent;cursor:pointer;color:var(--text3)">Neu verbinden</button>';
   } else {
-    document.getElementById('bin-info').innerHTML = 'Angemeldet als: '+MITARBEITER[currentMA]+' · Bin-ID: '+binId+' · Version: '+APP_BUILD+'&nbsp;&nbsp;<button onclick="resetConnection()" style="font-size:11px;padding:2px 8px;border-radius:4px;border:1px solid var(--border);background:transparent;cursor:pointer;color:var(--text3)">Neu verbinden</button>';
+    document.getElementById('bin-info').innerHTML = 'Angemeldet als: '+MITARBEITER[currentMA]+' · Version: '+APP_BUILD+'&nbsp;&nbsp;<button onclick="resetConnection()" style="font-size:11px;padding:2px 8px;border-radius:4px;border:1px solid var(--border);background:transparent;cursor:pointer;color:var(--text3)">Neu verbinden</button>';
   }
   // Immer mit aktuellem Monat starten
   currentMonth = new Date().getMonth();
@@ -973,9 +977,8 @@ function exportCSV(){
 }
 
 function resetConnection(){
-  if(confirm('Verbindung zurücksetzen? Key und Bin-ID werden gelöscht.')){
-    localStorage.removeItem('zt_k');
-    localStorage.removeItem('zt_b');
+  if(confirm('Verbindung zurücksetzen?')){
+    localStorage.removeItem('zt_connected');
     location.reload();
   }
 }
