@@ -230,7 +230,7 @@ const SUPABASE_TABLE = 'zeiterfassung';
 const DEF_START = '06:30';
 const RESTORE_DATA = {"0_2026_2": {"2": [{"art": "A", "start": "06:30", "ende": "12:00", "pause": 30, "pauseFrei": false, "notiz": ""}], "3": [{"art": "A", "start": "06:30", "ende": "16:30", "pause": 30, "pauseFrei": false, "notiz": ""}], "4": [{"art": "A", "start": "06:30", "ende": "15:00", "pause": 30, "pauseFrei": false, "notiz": ""}]}, "0_2026_3": {"1": [{"art": "A", "start": "06:30", "ende": "15:00", "pause": 30, "pauseFrei": false, "notiz": ""}], "2": [{"art": "A", "start": "06:30", "ende": "15:00", "pause": 30, "pauseFrei": false, "notiz": ""}], "3": [{"art": "U", "start": "06:30", "ende": "12:30", "pause": 0, "pauseFrei": false, "notiz": ""}], "7": [{"art": "A", "start": "06:30", "ende": "14:30", "pause": 30, "pauseFrei": false, "notiz": ""}], "8": [{"art": "A", "start": "06:30", "ende": "17:30", "pause": 30, "pauseFrei": false, "notiz": ""}], "9": [{"art": "A", "start": "06:30", "ende": "16:00", "pause": 30, "pauseFrei": false, "notiz": ""}], "10": [{"art": "U", "start": "06:30", "ende": "12:30", "pause": 0, "pauseFrei": false, "notiz": ""}], "13": [{"art": "A", "start": "06:30", "ende": "12:30", "pause": 0, "pauseFrei": false, "notiz": ""}], "14": [{"art": "A", "start": "06:30", "ende": "16:00", "pause": 30, "pauseFrei": false, "notiz": ""}], "15": [{"art": "A", "start": "05:15", "ende": "18:30", "pause": 30, "pauseFrei": false, "notiz": ""}], "16": [{"art": "A", "start": "06:30", "ende": "20:30", "pause": 30, "pauseFrei": false, "notiz": ""}], "17": [{"art": "A", "start": "06:30", "ende": "12:00", "pause": 0, "pauseFrei": false, "notiz": ""}], "20": [{"art": "A", "start": "05:00", "ende": "20:00", "pause": 30, "pauseFrei": false, "notiz": ""}], "21": [{"art": "A", "start": "06:30", "ende": "17:00", "pause": 30, "pauseFrei": false, "notiz": ""}], "22": [{"art": "A", "start": "06:30", "ende": "14:30", "pause": 30, "pauseFrei": false, "notiz": ""}], "23": [{"art": "A", "start": "06:30", "ende": "15:00", "pause": 30, "pauseFrei": false, "notiz": ""}], "24": [{"art": "U", "start": "06:30", "ende": "12:30", "pause": 0, "pauseFrei": false, "notiz": ""}], "27": [{"art": "A", "start": "06:30", "ende": "15:00", "pause": 30, "pauseFrei": false, "notiz": ""}], "28": [{"art": "A", "start": "07:00", "ende": "12:30", "pause": 0, "pauseFrei": false, "notiz": ""}], "29": [{"art": "A", "start": "06:30", "ende": "14:00", "pause": 30, "pauseFrei": false, "notiz": ""}], "30": [{"art": "A", "start": "06:30", "ende": "16:30", "pause": 30, "pauseFrei": false, "notiz": ""}]}, "0_2026_4": {"1": [{"art": "F", "start": "", "ende": "", "pause": 0, "pauseFrei": false, "notiz": ""}], "4": [{"art": "A", "start": "06:30", "ende": "15:00", "pause": 30, "pauseFrei": false, "notiz": ""}], "5": [{"art": "A", "start": "06:30", "ende": "17:15", "pause": 30, "pauseFrei": false, "notiz": ""}], "6": [{"art": "A", "start": "06:30", "ende": "17:00", "pause": 30, "pauseFrei": false, "notiz": ""}], "7": [{"art": "A", "start": "06:30", "ende": "16:30", "pause": 30, "pauseFrei": false, "notiz": ""}], "8": [{"art": "A", "start": "06:30", "ende": "11:30", "pause": 0, "pauseFrei": false, "notiz": ""}], "9": [{"art": "A", "start": "06:30", "ende": "12:30", "pause": 0, "pauseFrei": false, "notiz": ""}], "11": [{"art": "A", "start": "06:30", "ende": "17:30", "pause": 30, "pauseFrei": false, "notiz": ""}], "12": [{"art": "A", "start": "06:30", "ende": "16:30", "pause": 30, "pauseFrei": false, "notiz": ""}], "13": [{"art": "A", "start": "06:30", "ende": "16:30", "pause": 30, "pauseFrei": false, "notiz": ""}], "14": [{"art": "F", "start": "", "ende": "", "pause": 0, "pauseFrei": false, "notiz": ""}], "15": [{"art": "U", "start": "06:30", "ende": "12:30", "pause": 0, "pauseFrei": false, "notiz": ""}], "18": [{"art": "A", "start": "06:30", "ende": "18:30", "pause": 30, "pauseFrei": false, "notiz": ""}], "19": [{"art": "A", "start": "06:30", "ende": "17:30", "pause": 30, "pauseFrei": false, "notiz": ""}], "20": [{"art": "A", "start": "06:30", "ende": "16:00", "pause": 30, "pauseFrei": false, "notiz": ""}], "25": [{"art": "F", "start": "", "ende": "", "pause": 0, "pauseFrei": false, "notiz": ""}]}};
 const APP_VERSION = '4';
-const APP_BUILD  = '2026-05-27 v2.6';
+const APP_BUILD  = '2026-05-27 v2.7';
 
 let apiKey='', binId='', allData={};
 let currentMA=0, currentMonth=new Date().getMonth(), currentYear=new Date().getFullYear();
@@ -514,12 +514,20 @@ function changeMonth(d){
 function calcDayTotal(mi,mo,yr,d){
   const ft=getAllFeiertage(currentYear);
   const date=new Date(currentYear,mo,d);
+  const dow=date.getDay();
+  const isWE=dow===0||dow===6;
+  const ftName=ft[`${currentYear}-${String(mo+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`];
+  const isFT=!!ftName&&!isWE;
   const solH=getSoll(date,ft);
   const rows=getRows(mi,mo,yr,d);
   let total=0;
+  const hasAnyArt=rows.some(r=>r.art);
+  // Feiertag ohne gespeicherten Eintrag → automatisch Soll als Ist
+  if(isFT && !hasAnyArt){
+    return solH;
+  }
   rows.forEach(row=>{
     if(row.art==='F'){
-      // Feiertag: Ist = Soll automatisch
       total+=solH;
     } else if(row.art){
       const sm=calcSumme(row.start||DEF_START, row.ende, parseInt(row.pause)||0);
