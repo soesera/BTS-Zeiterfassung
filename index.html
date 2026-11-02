@@ -180,6 +180,8 @@ tr.row-today{outline:2px solid var(--accent);outline-offset:-2px;position:relati
         <button class="export-btn" onclick="exportBackup()" title="Alle Daten als Backup speichern">⬇ Backup</button>
         <button class="export-btn" onclick="openMitarbeiterVerwaltung()" style="background:var(--accent);color:#fff;border-color:var(--accent)">👥 MA</button>
         <button class="export-btn" onclick="monateUebernehmen()" title="Monate aus Rohdaten-Datei übernehmen" style="background:var(--accent);color:#fff;border-color:var(--accent)">📂 Monate übernehmen</button>
+        <button class="export-btn" onclick="monateVerschieben()" title="Einträge von einem Mitarbeiter zum anderen verschieben" style="background:var(--accent);color:#fff;border-color:var(--accent)">🔀 Verschieben</button>
+        <button class="export-btn" onclick="alleRohdatenSichern()" title="Alle Rohdaten als Datei sichern">💾 Alles sichern</button>
       </div>
     </div>
     <div class="summary-grid">
@@ -223,7 +225,10 @@ tr.row-today{outline:2px solid var(--accent);outline-offset:-2px;position:relati
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script>
 const MITARBEITER_DEFAULT = ['Patrick','Marinko','Herbert'];
-let MITARBEITER = [...MITARBEITER_DEFAULT]; // wird aus allData geladen
+let MITARBEITER = [...MITARBEITER_DEFAULT]; // ALLE Namen inkl. archivierte (Index = fester Platz!)
+let ARCHIV = [];                            // ARCHIV[i]=true → ausgeblendet, Index bleibt stabil
+function istAktiv(i){ return !ARCHIV[i]; }
+function ladeMitarbeiter(cfg){ MITARBEITER=cfg.map(m=>m.name); ARCHIV=cfg.map(m=>!!m.archiviert); }
 const ARTEN = ['','A','U','F','FA','K','S','AB','P'];
 const WT = ['So.','Mo.','Di.','Mi.','Do.','Fr.','Sa.'];
 const MON = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
@@ -233,7 +238,7 @@ const SUPABASE_TABLE = 'zeiterfassung';
 const DEF_START = '06:30';
 const RESTORE_DATA = {"0_2026_2": {"2": [{"art": "A", "start": "06:30", "ende": "12:00", "pause": 30, "pauseFrei": false, "notiz": ""}], "3": [{"art": "A", "start": "06:30", "ende": "16:30", "pause": 30, "pauseFrei": false, "notiz": ""}], "4": [{"art": "A", "start": "06:30", "ende": "15:00", "pause": 30, "pauseFrei": false, "notiz": ""}]}, "0_2026_3": {"1": [{"art": "A", "start": "06:30", "ende": "15:00", "pause": 30, "pauseFrei": false, "notiz": ""}], "2": [{"art": "A", "start": "06:30", "ende": "15:00", "pause": 30, "pauseFrei": false, "notiz": ""}], "3": [{"art": "U", "start": "06:30", "ende": "12:30", "pause": 0, "pauseFrei": false, "notiz": ""}], "7": [{"art": "A", "start": "06:30", "ende": "14:30", "pause": 30, "pauseFrei": false, "notiz": ""}], "8": [{"art": "A", "start": "06:30", "ende": "17:30", "pause": 30, "pauseFrei": false, "notiz": ""}], "9": [{"art": "A", "start": "06:30", "ende": "16:00", "pause": 30, "pauseFrei": false, "notiz": ""}], "10": [{"art": "U", "start": "06:30", "ende": "12:30", "pause": 0, "pauseFrei": false, "notiz": ""}], "13": [{"art": "A", "start": "06:30", "ende": "12:30", "pause": 0, "pauseFrei": false, "notiz": ""}], "14": [{"art": "A", "start": "06:30", "ende": "16:00", "pause": 30, "pauseFrei": false, "notiz": ""}], "15": [{"art": "A", "start": "05:15", "ende": "18:30", "pause": 30, "pauseFrei": false, "notiz": ""}], "16": [{"art": "A", "start": "06:30", "ende": "20:30", "pause": 30, "pauseFrei": false, "notiz": ""}], "17": [{"art": "A", "start": "06:30", "ende": "12:00", "pause": 0, "pauseFrei": false, "notiz": ""}], "20": [{"art": "A", "start": "05:00", "ende": "20:00", "pause": 30, "pauseFrei": false, "notiz": ""}], "21": [{"art": "A", "start": "06:30", "ende": "17:00", "pause": 30, "pauseFrei": false, "notiz": ""}], "22": [{"art": "A", "start": "06:30", "ende": "14:30", "pause": 30, "pauseFrei": false, "notiz": ""}], "23": [{"art": "A", "start": "06:30", "ende": "15:00", "pause": 30, "pauseFrei": false, "notiz": ""}], "24": [{"art": "U", "start": "06:30", "ende": "12:30", "pause": 0, "pauseFrei": false, "notiz": ""}], "27": [{"art": "A", "start": "06:30", "ende": "15:00", "pause": 30, "pauseFrei": false, "notiz": ""}], "28": [{"art": "A", "start": "07:00", "ende": "12:30", "pause": 0, "pauseFrei": false, "notiz": ""}], "29": [{"art": "A", "start": "06:30", "ende": "14:00", "pause": 30, "pauseFrei": false, "notiz": ""}], "30": [{"art": "A", "start": "06:30", "ende": "16:30", "pause": 30, "pauseFrei": false, "notiz": ""}]}, "0_2026_4": {"1": [{"art": "F", "start": "", "ende": "", "pause": 0, "pauseFrei": false, "notiz": ""}], "4": [{"art": "A", "start": "06:30", "ende": "15:00", "pause": 30, "pauseFrei": false, "notiz": ""}], "5": [{"art": "A", "start": "06:30", "ende": "17:15", "pause": 30, "pauseFrei": false, "notiz": ""}], "6": [{"art": "A", "start": "06:30", "ende": "17:00", "pause": 30, "pauseFrei": false, "notiz": ""}], "7": [{"art": "A", "start": "06:30", "ende": "16:30", "pause": 30, "pauseFrei": false, "notiz": ""}], "8": [{"art": "A", "start": "06:30", "ende": "11:30", "pause": 0, "pauseFrei": false, "notiz": ""}], "9": [{"art": "A", "start": "06:30", "ende": "12:30", "pause": 0, "pauseFrei": false, "notiz": ""}], "11": [{"art": "A", "start": "06:30", "ende": "17:30", "pause": 30, "pauseFrei": false, "notiz": ""}], "12": [{"art": "A", "start": "06:30", "ende": "16:30", "pause": 30, "pauseFrei": false, "notiz": ""}], "13": [{"art": "A", "start": "06:30", "ende": "16:30", "pause": 30, "pauseFrei": false, "notiz": ""}], "14": [{"art": "F", "start": "", "ende": "", "pause": 0, "pauseFrei": false, "notiz": ""}], "15": [{"art": "U", "start": "06:30", "ende": "12:30", "pause": 0, "pauseFrei": false, "notiz": ""}], "18": [{"art": "A", "start": "06:30", "ende": "18:30", "pause": 30, "pauseFrei": false, "notiz": ""}], "19": [{"art": "A", "start": "06:30", "ende": "17:30", "pause": 30, "pauseFrei": false, "notiz": ""}], "20": [{"art": "A", "start": "06:30", "ende": "16:00", "pause": 30, "pauseFrei": false, "notiz": ""}], "25": [{"art": "F", "start": "", "ende": "", "pause": 0, "pauseFrei": false, "notiz": ""}]}};
 const APP_VERSION = '4';
-const APP_BUILD  = '2026-11-02 v3.5';
+const APP_BUILD  = '2026-11-02 v3.6';
 
 let apiKey='', binId='', allData={};
 let currentMA=0, currentMonth=new Date().getMonth(), currentYear=new Date().getFullYear();
@@ -410,7 +415,7 @@ async function fetchData(){
     fetchedOk=true;
     // Mitarbeiterliste aus allData laden
     if(allData['mitarbeiter_config']){
-      MITARBEITER = allData['mitarbeiter_config'].filter(m=>!m.archiviert).map(m=>m.name);
+      ladeMitarbeiter(allData['mitarbeiter_config']);
     }
     setSyncStatus('ok','synchronisiert ✓'); return true;
   }catch(e){ setSyncStatus('err','Fehler: '+e.message); return false; }
@@ -485,7 +490,7 @@ function startApp(){
     document.getElementById('bin-info').innerHTML =
       '' +
       '<span style="font-size:12px;font-weight:500;color:var(--text2)">Mitarbeiter-Links (zum Weiterschicken):</span><br>' +
-      MITARBEITER.map((n,i)=>
+      MITARBEITER.map((n,i)=> ARCHIV[i] ? '' :
         `<a href="${base}?ma=${i}" style="color:var(--accent);margin-right:16px" onclick="navigator.clipboard&&navigator.clipboard.writeText('${base}?ma=${i}')">🔗 ${n}</a>`
       ).join('') +
       `<br><br><a href="${base}?admin" style="color:var(--accent);margin-right:16px">⚙️ Admin-Link</a>` +
@@ -513,6 +518,7 @@ function buildTabs(){
     bar.appendChild(b);
   } else {
     MITARBEITER.forEach((n,i)=>{
+      if(ARCHIV[i]) return;
       const b=document.createElement('button');
       b.className='tab-btn'+(i===currentMA?' active':'');
       b.textContent=n; b.onclick=()=>{ currentMA=i; render(); };
@@ -1107,6 +1113,41 @@ function monateUebernehmen(){
   inp.click();
 }
 
+
+function alleRohdatenSichern(){
+  downloadJSON({typ:'bts-alles', build:APP_BUILD, daten:allData}, 'ALLE_Rohdaten_'+new Date().toISOString().slice(0,10)+'.json');
+}
+async function monateVerschieben(){
+  if(!fetchedOk){ alert('Keine Verbindung zum Server – bitte erst ↻ Aktualisieren.'); return; }
+  await fetchData();
+  const liste = MITARBEITER.map((n,i)=>i+' = '+n+(ARCHIV[i]?' (archiviert)':'')).join('\n');
+  const von = parseInt(prompt('Einträge VERSCHIEBEN\n\nVon welcher Nummer?\n'+liste,'1'));
+  if(isNaN(von)||!MITARBEITER[von]) return;
+  const nach = parseInt(prompt('Nach welcher Nummer?\n'+liste,'2'));
+  if(isNaN(nach)||!MITARBEITER[nach]||nach===von) return;
+  const mon = (prompt('Welche Monate (Jahr 2026)? Zahlen 1–12 mit Komma, z. B. 9,10,11','9,10,11')||'').split(',').map(x=>parseInt(x)).filter(x=>x>=1&&x<=12);
+  if(!mon.length) return;
+  let info='', plan=[];
+  mon.forEach(m=>{
+    const ks='%s_2026_%s'.replace('%s',von).replace('%s',m-1), kz=nach+'_2026_'+(m-1);
+    const src=allData[ks]||{}, dst=allData[kz]||{};
+    const neu=Object.keys(src).filter(d=>!dst[d]), konf=Object.keys(src).filter(d=>dst[d]);
+    if(Object.keys(src).length===0 && !allData[ks]) return;
+    plan.push({ks,kz,neu});
+    info += MON[m-1]+': '+Object.keys(src).length+' Tage bei '+MITARBEITER[von]+' → '+neu.length+' werden zu '+MITARBEITER[nach]+' hinzugefügt, '+konf.length+' Tage gibt es schon bei '+MITARBEITER[nach]+' (die bleiben unverändert)\n';
+  });
+  if(!plan.length){ alert('Nichts zu verschieben.'); return; }
+  if(!confirm(info+'\nDanach sind diese Monate bei '+MITARBEITER[von]+' leer. Fortfahren?\n(Eine Sicherung wird vorher heruntergeladen.)')) return;
+  downloadJSON({typ:'bts-alles', daten:allData}, 'Sicherung_vor_Verschieben_'+new Date().toISOString().slice(0,10)+'.json');
+  plan.forEach(pl=>{
+    if(!allData[pl.kz]) allData[pl.kz]={};
+    pl.neu.forEach(d=>{ allData[pl.kz][d]=allData[pl.ks][d]; });
+    delete allData[pl.ks];
+  });
+  await pushData(); render();
+  alert('Fertig.');
+}
+
 // ---- BACKUP ----
 function exportBackup(){
   // Alle Daten als JSON speichern – pro Mitarbeiter aufgeteilt
@@ -1128,8 +1169,8 @@ function exportBackup(){
         const rows = allData[k];
         if(!backup.mitarbeiter[name][label]) backup.mitarbeiter[name][label] = [];
         Object.keys(rows).forEach(d => {
-          const row = rows[d];
-          if(row.art){
+          (Array.isArray(rows[d]) ? rows[d] : [rows[d]]).forEach(row => {
+          if(row && row.art){
             const date = new Date(parseInt(yr), parseInt(mo), parseInt(d));
             const solH = getSoll(date, getAllFeiertage(parseInt(yr)));
             const pv = parseInt(row.pause)||0;
@@ -1146,6 +1187,7 @@ function exportBackup(){
               notiz: row.notiz||''
             });
           }
+          });
         });
       }
     });
@@ -1171,7 +1213,7 @@ function getMitarbeiterConfig(){
 function saveMitarbeiterConfig(config){
   allData['mitarbeiter_config'] = config;
   // MITARBEITER neu aufbauen
-  MITARBEITER = config.filter(m=>!m.archiviert).map(m=>m.name);
+  ladeMitarbeiter(config);
   schedulePush();
 }
 
