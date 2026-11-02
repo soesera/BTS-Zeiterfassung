@@ -232,7 +232,7 @@ const SUPABASE_TABLE = 'zeiterfassung';
 const DEF_START = '06:30';
 const RESTORE_DATA = {"0_2026_2": {"2": [{"art": "A", "start": "06:30", "ende": "12:00", "pause": 30, "pauseFrei": false, "notiz": ""}], "3": [{"art": "A", "start": "06:30", "ende": "16:30", "pause": 30, "pauseFrei": false, "notiz": ""}], "4": [{"art": "A", "start": "06:30", "ende": "15:00", "pause": 30, "pauseFrei": false, "notiz": ""}]}, "0_2026_3": {"1": [{"art": "A", "start": "06:30", "ende": "15:00", "pause": 30, "pauseFrei": false, "notiz": ""}], "2": [{"art": "A", "start": "06:30", "ende": "15:00", "pause": 30, "pauseFrei": false, "notiz": ""}], "3": [{"art": "U", "start": "06:30", "ende": "12:30", "pause": 0, "pauseFrei": false, "notiz": ""}], "7": [{"art": "A", "start": "06:30", "ende": "14:30", "pause": 30, "pauseFrei": false, "notiz": ""}], "8": [{"art": "A", "start": "06:30", "ende": "17:30", "pause": 30, "pauseFrei": false, "notiz": ""}], "9": [{"art": "A", "start": "06:30", "ende": "16:00", "pause": 30, "pauseFrei": false, "notiz": ""}], "10": [{"art": "U", "start": "06:30", "ende": "12:30", "pause": 0, "pauseFrei": false, "notiz": ""}], "13": [{"art": "A", "start": "06:30", "ende": "12:30", "pause": 0, "pauseFrei": false, "notiz": ""}], "14": [{"art": "A", "start": "06:30", "ende": "16:00", "pause": 30, "pauseFrei": false, "notiz": ""}], "15": [{"art": "A", "start": "05:15", "ende": "18:30", "pause": 30, "pauseFrei": false, "notiz": ""}], "16": [{"art": "A", "start": "06:30", "ende": "20:30", "pause": 30, "pauseFrei": false, "notiz": ""}], "17": [{"art": "A", "start": "06:30", "ende": "12:00", "pause": 0, "pauseFrei": false, "notiz": ""}], "20": [{"art": "A", "start": "05:00", "ende": "20:00", "pause": 30, "pauseFrei": false, "notiz": ""}], "21": [{"art": "A", "start": "06:30", "ende": "17:00", "pause": 30, "pauseFrei": false, "notiz": ""}], "22": [{"art": "A", "start": "06:30", "ende": "14:30", "pause": 30, "pauseFrei": false, "notiz": ""}], "23": [{"art": "A", "start": "06:30", "ende": "15:00", "pause": 30, "pauseFrei": false, "notiz": ""}], "24": [{"art": "U", "start": "06:30", "ende": "12:30", "pause": 0, "pauseFrei": false, "notiz": ""}], "27": [{"art": "A", "start": "06:30", "ende": "15:00", "pause": 30, "pauseFrei": false, "notiz": ""}], "28": [{"art": "A", "start": "07:00", "ende": "12:30", "pause": 0, "pauseFrei": false, "notiz": ""}], "29": [{"art": "A", "start": "06:30", "ende": "14:00", "pause": 30, "pauseFrei": false, "notiz": ""}], "30": [{"art": "A", "start": "06:30", "ende": "16:30", "pause": 30, "pauseFrei": false, "notiz": ""}]}, "0_2026_4": {"1": [{"art": "F", "start": "", "ende": "", "pause": 0, "pauseFrei": false, "notiz": ""}], "4": [{"art": "A", "start": "06:30", "ende": "15:00", "pause": 30, "pauseFrei": false, "notiz": ""}], "5": [{"art": "A", "start": "06:30", "ende": "17:15", "pause": 30, "pauseFrei": false, "notiz": ""}], "6": [{"art": "A", "start": "06:30", "ende": "17:00", "pause": 30, "pauseFrei": false, "notiz": ""}], "7": [{"art": "A", "start": "06:30", "ende": "16:30", "pause": 30, "pauseFrei": false, "notiz": ""}], "8": [{"art": "A", "start": "06:30", "ende": "11:30", "pause": 0, "pauseFrei": false, "notiz": ""}], "9": [{"art": "A", "start": "06:30", "ende": "12:30", "pause": 0, "pauseFrei": false, "notiz": ""}], "11": [{"art": "A", "start": "06:30", "ende": "17:30", "pause": 30, "pauseFrei": false, "notiz": ""}], "12": [{"art": "A", "start": "06:30", "ende": "16:30", "pause": 30, "pauseFrei": false, "notiz": ""}], "13": [{"art": "A", "start": "06:30", "ende": "16:30", "pause": 30, "pauseFrei": false, "notiz": ""}], "14": [{"art": "F", "start": "", "ende": "", "pause": 0, "pauseFrei": false, "notiz": ""}], "15": [{"art": "U", "start": "06:30", "ende": "12:30", "pause": 0, "pauseFrei": false, "notiz": ""}], "18": [{"art": "A", "start": "06:30", "ende": "18:30", "pause": 30, "pauseFrei": false, "notiz": ""}], "19": [{"art": "A", "start": "06:30", "ende": "17:30", "pause": 30, "pauseFrei": false, "notiz": ""}], "20": [{"art": "A", "start": "06:30", "ende": "16:00", "pause": 30, "pauseFrei": false, "notiz": ""}], "25": [{"art": "F", "start": "", "ende": "", "pause": 0, "pauseFrei": false, "notiz": ""}]}};
 const APP_VERSION = '4';
-const APP_BUILD  = '2026-09-01 v3.3';
+const APP_BUILD  = '2026-11-02 v3.4';
 
 let apiKey='', binId='', allData={};
 let currentMA=0, currentMonth=new Date().getMonth(), currentYear=new Date().getFullYear();
@@ -382,6 +382,7 @@ async function setupConnect(){
     });
     if(!r.ok) throw new Error(`HTTP ${r.status}`);
     const j=await r.json();
+    fetchedOk=true;
     if(j.length===0){
       // Erste Verbindung: Backup-Daten importieren
       allData = JSON.parse(JSON.stringify(RESTORE_DATA));
@@ -405,6 +406,7 @@ async function fetchData(){
     if(!r.ok) throw new Error(`HTTP ${r.status}`);
     const j=await r.json();
     if(j.length>0 && j[0].data){ allData=j[0].data; }
+    fetchedOk=true;
     // Mitarbeiterliste aus allData laden
     if(allData['mitarbeiter_config']){
       MITARBEITER = allData['mitarbeiter_config'].filter(m=>!m.archiviert).map(m=>m.name);
@@ -412,7 +414,15 @@ async function fetchData(){
     setSyncStatus('ok','synchronisiert ✓'); return true;
   }catch(e){ setSyncStatus('err','Fehler: '+e.message); return false; }
 }
+let fetchedOk=false;
 async function pushData(){
+  // Schutz: nie senden, solange noch kein erfolgreicher Abgleich mit dem Server war
+  // (sonst würde ein leerer/veralteter Stand die Server-Daten überschreiben)
+  if(!fetchedOk){
+    try{ localStorage.setItem('zt_pending', JSON.stringify(allData)); }catch(e2){}
+    setSyncStatus('err','Nicht gespeichert – keine Verbindung zum Server');
+    return;
+  }
   try{
     const r=await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}`,{
       method:'POST',
@@ -478,9 +488,9 @@ function startApp(){
         `<a href="${base}?ma=${i}" style="color:var(--accent);margin-right:16px" onclick="navigator.clipboard&&navigator.clipboard.writeText('${base}?ma=${i}')">🔗 ${n}</a>`
       ).join('') +
       `<br><br><a href="${base}?admin" style="color:var(--accent);margin-right:16px">⚙️ Admin-Link</a>` +
-      '<span style="font-size:11px;color:var(--text3)"> – auf Link klicken zum Kopieren</span><br><span style="font-size:11px;color:var(--text3)">Version: '+APP_BUILD+'</span>&nbsp;&nbsp;<button onclick="resetConnection()" style="font-size:11px;padding:2px 8px;border-radius:4px;border:1px solid var(--border);background:transparent;cursor:pointer;color:var(--text3)">Neu verbinden</button>&nbsp;&nbsp;<button onclick="importBackupData()" style="font-size:11px;padding:2px 8px;border-radius:4px;border:1px solid #b2d4bc;background:var(--accent-bg);cursor:pointer;color:var(--accent-text)">📥 Backup-Daten importieren</button>&nbsp;&nbsp;<button onclick="openMitarbeiterVerwaltung()" style="font-size:11px;padding:2px 8px;border-radius:4px;border:1px solid #b2d4bc;background:var(--accent-bg);cursor:pointer;color:var(--accent-text)">👥 Mitarbeiter</button>';
+      '<span style="font-size:11px;color:var(--text3)"> – auf Link klicken zum Kopieren</span><br><span style="font-size:11px;color:var(--text3)">Version: '+APP_BUILD+'</span>&nbsp;&nbsp;<button onclick="resetConnection()" style="font-size:11px;padding:2px 8px;border-radius:4px;border:1px solid var(--border);background:transparent;cursor:pointer;color:var(--text3)">Neu verbinden</button>&nbsp;&nbsp;<button onclick="importBackupData()" style="font-size:11px;padding:2px 8px;border-radius:4px;border:1px solid #b2d4bc;background:var(--accent-bg);cursor:pointer;color:var(--accent-text)">📥 Backup-Daten importieren</button>&nbsp;&nbsp;<button onclick="openMitarbeiterVerwaltung()" style="font-size:11px;padding:2px 8px;border-radius:4px;border:1px solid #b2d4bc;background:var(--accent-bg);cursor:pointer;color:var(--accent-text)">👥 Mitarbeiter</button>&nbsp;&nbsp;<button onclick="monateUebernehmen()" style="font-size:11px;padding:2px 8px;border-radius:4px;border:1px solid #b2d4bc;background:var(--accent-bg);cursor:pointer;color:var(--accent-text)">📂 Monate aus Rohdaten-Datei übernehmen</button>';
   } else {
-    document.getElementById('bin-info').innerHTML = 'Angemeldet als: '+MITARBEITER[currentMA]+' · Version: '+APP_BUILD+'&nbsp;&nbsp;<button onclick="resetConnection()" style="font-size:11px;padding:2px 8px;border-radius:4px;border:1px solid var(--border);background:transparent;cursor:pointer;color:var(--text3)">Neu verbinden</button>';
+    document.getElementById('bin-info').innerHTML = 'Angemeldet als: '+MITARBEITER[currentMA]+' · Version: '+APP_BUILD+'&nbsp;&nbsp;<button onclick="exportRohdaten()" style="font-size:11px;padding:2px 8px;border-radius:4px;border:1px solid #b2d4bc;background:var(--accent-bg);cursor:pointer;color:var(--accent-text)">📤 Meine Daten sichern</button>&nbsp;&nbsp;<button onclick="resetConnection()" style="font-size:11px;padding:2px 8px;border-radius:4px;border:1px solid var(--border);background:transparent;cursor:pointer;color:var(--text3)">Neu verbinden</button>';
   }
   document.getElementById('topbar-version').textContent = APP_BUILD;
   // Immer mit aktuellem Monat starten
@@ -1045,6 +1055,55 @@ async function importBackupData(){
   } else {
     alert('Keine leeren Monate gefunden – nichts importiert.');
   }
+}
+
+// ---- ROHDATEN-EXPORT / MONATE ÜBERNEHMEN (v3.4) ----
+function downloadJSON(obj, filename){
+  const blob = new Blob([JSON.stringify(obj,null,1)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+}
+function exportRohdaten(){
+  // Eigene Daten dieses Geräts (Speicher + eventuell nicht gesendeter Zwischenstand)
+  let pend = {};
+  try{ pend = JSON.parse(localStorage.getItem('zt_pending')||'{}') || {}; }catch(e){}
+  const out = {};
+  const pref = currentMA+'_';
+  [allData, pend].forEach(src=>{
+    Object.keys(src).forEach(k=>{ if(k.startsWith(pref)) out[k]=src[k]; });
+  });
+  const n = Object.keys(out).length;
+  if(!n){ alert('Keine Daten für '+MITARBEITER[currentMA]+' auf diesem Gerät gefunden.'); return; }
+  downloadJSON({typ:'bts-rohdaten', ma:currentMA, name:MITARBEITER[currentMA], build:APP_BUILD, daten:out},
+    'Rohdaten_'+MITARBEITER[currentMA]+'_'+new Date().toISOString().slice(0,10)+'.json');
+}
+function monateUebernehmen(){
+  if(!fetchedOk){ alert('Keine Verbindung zum Server – bitte erst ↻ Aktualisieren.'); return; }
+  const inp = document.createElement('input');
+  inp.type='file'; inp.accept='.json,application/json';
+  inp.onchange = async ()=>{
+    try{
+      const f = inp.files[0]; if(!f) return;
+      const j = JSON.parse(await f.text());
+      if(j.typ!=='bts-rohdaten' || !j.daten) throw new Error('Keine Rohdaten-Datei');
+      const von = parseInt(prompt('Ab welchem Monat übernehmen? (Monat als Zahl 1–12, Jahr 2026)\nz. B. 10 = Oktober 2026 bis heute','10'));
+      if(!von || von<1 || von>12) return;
+      const keys = Object.keys(j.daten).filter(k=>{
+        const p=k.split('_'); return parseInt(p[0])===j.ma && parseInt(p[1])===2026 && parseInt(p[2])+1>=von;
+      });
+      if(!keys.length){ alert('Keine passenden Monate in der Datei.'); return; }
+      if(!confirm(j.name+': '+keys.length+' Monat(e) übernehmen und die Server-Daten dieser Monate ersetzen?\nAlle anderen Daten bleiben unverändert.')) return;
+      // Sicherheitskopie des aktuellen Stands
+      downloadJSON(allData, 'Sicherung_vor_Uebernahme_'+new Date().toISOString().slice(0,10)+'.json');
+      await fetchData();
+      keys.forEach(k=>{ allData[k]=j.daten[k]; });
+      await pushData();
+      render();
+      alert('Übernommen: '+keys.join(', '));
+    }catch(e){ alert('Fehler: '+e.message); }
+  };
+  inp.click();
 }
 
 // ---- BACKUP ----
